@@ -1,6 +1,6 @@
 [submodule "packages/graph-headless"]
 	path = packages/graph-headless
-	url = ./packages/graph-headless
+	url = git@github.com:Vritti-ai/wity-graph-headless.git
 [submodule "packages/graph-ui-compute"]
 	path = packages/graph-ui-compute
-	url = ./packages/graph-ui-compute
+	url = git@github.com:Vritti-ai/wity-graph-ui-compute.git
