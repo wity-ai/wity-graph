@@ -1,0 +1,22 @@
+{
+  "name": "@wity/graph",
+  "version": "0.1.0",
+  "description": "Wity graph library — headless state + UI geometry compute layers combined.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": ["graph", "directed-graph", "svg", "headless"],
+  "license": "MIT",
+  "dependencies": {
+    "@wity/graph-headless": "*",
+    "@wity/graph-ui-compute": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

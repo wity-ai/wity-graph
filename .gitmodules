@@ -1,0 +1,6 @@
+[submodule "packages/graph-headless"]
+	path = packages/graph-headless
+	url = ./packages/graph-headless
+[submodule "packages/graph-ui-compute"]
+	path = packages/graph-ui-compute
+	url = ./packages/graph-ui-compute

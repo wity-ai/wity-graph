@@ -1,0 +1,9 @@
+{
+  "name": "wity-graph-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/graph-headless",
+    "packages/graph-ui-compute",
+    "packages/graph"
+  ]
+}
