@@ -14,7 +14,8 @@
   "license": "MIT",
   "dependencies": {
     "@wity/graph-headless": "*",
-    "@wity/graph-ui-compute": "*"
+    "@wity/graph-ui-compute": "*",
+    "@wity/graph-player": "*"
   },
   "publishConfig": {
     "access": "public"

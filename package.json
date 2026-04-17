@@ -4,6 +4,7 @@
   "workspaces": [
     "packages/graph-headless",
     "packages/graph-ui-compute",
+    "packages/graph-player",
     "packages/graph"
   ]
 }

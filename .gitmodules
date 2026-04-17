@@ -4,3 +4,6 @@
 [submodule "packages/graph-ui-compute"]
 	path = packages/graph-ui-compute
 	url = git@github.com:Vritti-ai/wity-graph-ui-compute.git
+[submodule "packages/graph-player"]
+	path = packages/graph-player
+	url = git@github.com:Vritti-ai/wity-graph-player.git

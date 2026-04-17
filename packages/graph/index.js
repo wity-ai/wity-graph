@@ -8,3 +8,4 @@
 
 export * from '@wity/graph-headless';
 export * from '@wity/graph-ui-compute';
+export * from '@wity/graph-player';
