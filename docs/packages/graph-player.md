@@ -51,8 +51,9 @@ new GraphPlayer(snapshot, options)
 
 ```js
 {
-  nodes: node[],
-  edges: edge[],
+  nodes:  node[],
+  edges:  edge[],
+  events: event[],   // optional — any custom events slotted into the timeline
 }
 ```
 
@@ -73,6 +74,34 @@ Temporal field on edges:
 | `createdAt` | `max(src.createdAt, target.createdAt)` | When the edge appears |
 
 If `createdAt` is absent on a node, it defaults to `0` (appears at the start).
+
+### snapshot.events — custom timeline events
+
+Any additional event type — cursor movements, selections, agent signals — can be scripted into the timeline alongside nodes and edges.
+
+```js
+{
+  type:     string,        // emitted as-is — 'cursor:moved', 'selection:changed', anything
+  t:        number,        // timestamp in ms; defaults to 0 if absent
+  payload:  object,        // emitted verbatim, merged with actorId if present
+  actorId:  string,        // optional — merged into emitted payload for convenience
+}
+```
+
+`actorId` being merged into payload means subscribers receive a flat object:
+
+```js
+// Snapshot entry:
+{ type: 'cursor:moved', actorId: 'user-1', t: 500, payload: { x: 320, y: 210 } }
+
+// What the subscriber receives:
+player.on('cursor:moved', ({ actorId, x, y }) => { ... })
+// → { actorId: 'user-1', x: 320, y: 210 }
+```
+
+Same-t ordering: nodes → edges → custom events (insertion order preserved within each group).
+
+**Backward compatible** — snapshots without an `events` array behave identically to before.
 
 ### options
 
