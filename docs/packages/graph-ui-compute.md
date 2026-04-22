@@ -258,13 +258,53 @@ updatePlaceholderLinkPath(el, pathString);
 Derive render-ready port dot data from all nodes.
 
 ```js
-import { computePortDots } from '@wity/graph-ui-compute';
+import { computePortDots, getNodeTypeConfig } from '@wity/graph-ui-compute';
 
-const dots = computePortDots(store.getNodes());
-// → [{ nodeUid, portId, side, x, y }, ...]
+const dots = computePortDots(store.getNodes(), getNodeTypeConfig);
+// → [{ nodeUid, portId, side, x, y, style: { color, radius } }, ...]
 ```
 
+The second argument is the config resolver — pass `getNodeTypeConfig` from `@wity/graph-headless` (re-exported from `@wity/graph-ui-compute` so no extra import is needed).
+
 Feed directly into `keyedJoin` + `createPortDot`/`updatePortDotPosition`.
+
+---
+
+## bindPortDrag
+
+Drag-from-port gesture for drawing edges between existing nodes. Handles pointer capture, throttled move, SVG coordinate conversion, and Escape/cancel.
+
+```js
+import { bindPortDrag } from '@wity/graph-ui-compute';
+
+const binding = bindPortDrag(portEl, viewportEl, {
+  onStart:     (svgX, svgY) => linker.start(fromUid),
+  onMove:      (svgX, svgY) => linker.update(svgX, svgY),
+  onDrop:      (svgX, svgY) => {
+    const target = getNodeAtPoint(svgX, svgY, store.getNodes(), { exclude: [fromUid] });
+    linker.commit(target?.uid);
+  },
+  onCancel:    ()           => linker.cancel(),
+  throttleMs:  16,           // optional, default 16ms (~60fps)
+});
+
+// Teardown
+binding.destroy();
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `onStart` | `(svgX, svgY) => void` | — | Called on pointerdown |
+| `onMove` | `(svgX, svgY) => void` | — | Called on pointermove (throttled) |
+| `onDrop` | `(svgX, svgY) => void` | — | Called on pointerup |
+| `onCancel` | `() => void` | — | Called on pointercancel or Escape key |
+| `throttleMs` | `number` | `16` | Move event throttle interval |
+
+`portEl` is the port dot element — stopPropagation prevents the node drag from also firing. `viewportEl` is the SVG `<g>` with the graph transform — used to convert pointer coords to SVG space.
+
+Pair with `getNodeAtPoint` (re-exported below) to hit-test the drop target.
 
 ---
 
@@ -327,3 +367,25 @@ Cursor-mode show:
 ```js
 toolbar.show('context-menu', { x: screenX, y: screenY }, menuData);
 ```
+
+---
+
+## Re-exports from graph-headless
+
+`@wity/graph-ui-compute` re-exports a subset of `@wity/graph-headless` so presentation layers can import everything from a single package.
+
+```js
+import {
+  getNodeAtPoint,
+  getNodesInRect,
+  horizontalLinkPath,
+  getNodeTypeConfig,
+} from '@wity/graph-ui-compute';
+```
+
+| Export | Description |
+|---|---|
+| `getNodeAtPoint(x, y, nodes, opts?)` | Hit-test a point against node bounding boxes. Options: `exclude: string[]`, `padding: number` |
+| `getNodesInRect(rx, ry, rw, rh, nodes)` | All nodes overlapping a rectangle (rubber-band selection) |
+| `horizontalLinkPath(source, target)` | Raw cubic bezier SVG `d` string between two `[x, y]` points |
+| `getNodeTypeConfig(type)` | Config resolver — required as second arg to `computePortDots` |

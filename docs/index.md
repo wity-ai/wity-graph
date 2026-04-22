@@ -68,5 +68,5 @@ store.ingest([
 - **Headless layer owns all math.** Layout, geometry, coordinate transforms, traversal — none of this belongs in the rendering layer.
 - **Rendering layer owns only DOM mutations.** It subscribes to events and applies the computed state. No logic lives there.
 - **Event-driven, not reactive-framework-dependent.** The EventBus is plain pub/sub. Wire it into React state, Svelte stores, or vanilla JS — your choice.
-- **Narrow events over broad ones.** `node:moved` and `node:status-changed` let the renderer update a single node. `nodes:changed` is for bulk changes. Both exist.
+- **Narrow events over broad ones.** `node:moved`, `node:status-changed`, and `node:style-changed` let the renderer update a single node. `nodes:changed` is for bulk changes. Both exist.
 - **Batching prevents re-render storms.** `store.batch(fn)` defers all events until the block completes.
