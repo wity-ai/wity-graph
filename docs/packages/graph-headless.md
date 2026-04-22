@@ -92,7 +92,24 @@ store.updateNode('concept-1', { title: 'Updated title', updatedBy: ['user-1', 'u
 
 #### `removeNode(uid)`
 
-Removes node and all connected edges. Emits `'node:removed'` with `{ uid, descendants: node[] }` **before** deletion — use this for exit animations.
+Removes a node and all its connected edges. Emits `'node:removed'` with `{ uid, descendants: node[] }` **before** deletion — use this for exit animations.
+
+#### `removeNodes(uids)`
+
+Remove multiple nodes in a single batch. More efficient than calling `removeNode()` in a loop — emits one `'nodes:removed'` event before deletion and coalesces `'nodes:changed'` + `'edges:changed'` into single emissions.
+
+The caller decides the scope — pass descendants explicitly using `getDescendants()` if deleting a branch.
+
+```js
+// Delete a single branch
+const descendants = store.getDescendants(uid);
+store.removeNodes([uid, ...descendants.map(d => d.uid)]);
+
+// Listen for bulk removal
+store.on('nodes:removed', ({ uids, nodes }) => animateExits(nodes));
+```
+
+`SelectionManager` auto-deselects all removed nodes and emits one `'selection:changed'` — no extra wiring needed.
 
 #### `getNode(uid)` → `node | null`
 
