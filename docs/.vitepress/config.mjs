@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-  base:        '/stack/wity-graph/',
+  base:        '/stack/knowledge-graph/',
   title:       'wity-graph',
   description: 'A headless, ontologically-grounded directed graph library. Zero dependencies. Production-grade.',
 

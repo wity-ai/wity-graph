@@ -558,11 +558,33 @@ import { horizontalLinkPath, computeNodeLinkPath } from '@wity/graph-headless';
 ### Pan target
 
 ```js
-import { getPanTargetForNode } from '@wity/graph-headless';
+import { getPanTargetForNode, getFitToContent } from '@wity/graph-headless';
 
 const pan = getPanTargetForNode(node, layout, viewport, { zoom: 1.2, yOffset: 100 });
 // → { x, y }  — set panZoom.setPan(pan.x, pan.y)
 ```
+
+### `getFitToContent(nodes, viewport, options?)` → `{ pan, zoom } | null`
+
+Pure math — compute the pan and zoom that fit all placed nodes into the viewport. Returns `null` if no nodes have been placed yet.
+
+```js
+const result = getFitToContent(store.getNodes(), canvas.getViewport());
+if (result) {
+    // Animated
+    animateTo(result.pan, result.zoom);
+
+    // Or instant
+    canvas.setPan(result.pan.x, result.pan.y);
+    canvas.zoomToCenter(result.zoom);
+}
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `padding` | `number` | `0.9` | Fraction of viewport to fill — `0.9` leaves ~10% margin on each side |
+| `minZoom` | `number` | `0.1` | Floor on computed zoom |
+| `maxZoom` | `number` | `1` | Ceiling on computed zoom — default prevents magnifying a small graph beyond 1:1 |
 
 ---
 
