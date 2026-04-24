@@ -17,7 +17,7 @@ Binds wheel + pointer drag events to a `PanZoomState` instance, and provides pro
 ```js
 import { bindPanZoom } from '@wity/graph-ui-compute';
 
-const { applyTransform, animateTo, destroy } = bindPanZoom(
+const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(
   targetEl,    // Element that receives pointer events (usually the SVG root)
   viewportEl,  // <g class="kg-viewport"> — the element the transform is applied to
   panZoom,     // PanZoomState instance
@@ -55,6 +55,22 @@ animateTo({ x, y }, 1.2, () => console.log('done'));
 ```
 
 `focalPoint` — optional `{ x, y }` screen point to keep fixed during zoom phase.
+
+#### `animateToFit(fitResult, onComplete?)`
+
+Animate pan and zoom simultaneously to fit a pre-computed `getFitToContent` result. Uses ease-out cubic over 350ms.
+
+Unlike `animateTo()` which sequences pan then zoom, `animateToFit` interpolates both in a single RAF loop — required because the fit pan is computed for the target zoom and would be wrong if zoom changed separately.
+
+```js
+import { getFitToContent } from '@wity/graph-headless';
+
+// Pan + zoom to fit all nodes in the viewport
+const fit = getFitToContent(store.getNodes(), { width: vpW, height: vpH });
+animateToFit(fit, () => console.log('done'));
+```
+
+Pass `null` (e.g. empty graph) — `animateToFit` is a no-op.
 
 #### `destroy()`
 

@@ -568,17 +568,28 @@ const pan = getPanTargetForNode(node, layout, viewport, { zoom: 1.2, yOffset: 10
 
 Pure math — compute the pan and zoom that fit all placed nodes into the viewport. Returns `null` if no nodes have been placed yet.
 
+Accepts any array of `{ x, y, w, h }` objects — not just `store.getNodes()`. Unplaced nodes (`x == null`) are skipped automatically.
+
 ```js
+// From store
 const result = getFitToContent(store.getNodes(), canvas.getViewport());
+
+// From a filtered subset
+const result = getFitToContent(store.getNodes().filter(n => n.type === 'entity'), viewport);
+
 if (result) {
-    // Animated
-    animateTo(result.pan, result.zoom);
+    // Animated (simultaneous pan+zoom — use animateToFit, not animateTo)
+    animateToFit(result);
 
     // Or instant
     canvas.setPan(result.pan.x, result.pan.y);
     canvas.zoomToCenter(result.zoom);
 }
 ```
+
+::: tip Use `animateToFit`, not `animateTo`
+`getFitToContent` computes pan at the target zoom. `animateTo` sequences pan→zoom, which shifts the final pan. Use `animateToFit` from `bindPanZoom` for correct animated fit-all.
+:::
 
 | Option | Type | Default | Description |
 |---|---|---|---|
