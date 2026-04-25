@@ -178,6 +178,24 @@ const persisted = store.getNodeStyle('concept-1');  // { background: '#f5f0e8', 
 Always use `setNodeStyle` rather than mutating `node.styleObj` directly. Direct mutation bypasses `'node:style-changed'` — presentation layers won't know to update.
 :::
 
+#### `setNodeData(uid, data)`
+#### `getNodeData(uid)` → `node | null`
+
+The single write path for attaching opaque external data to a node (media, composed forms, AI results, etc.). `setNodeData` shallow-merges `data` onto the node via `Object.assign` and emits narrow `'node:data-changed'` — presentation layers can subscribe and update the corresponding live component without a full re-render.
+
+`getNodeData` returns the full node object (mutable reference — read-only use only).
+
+```js
+store.setNodeData('concept-1', { composedForms: [...], mediaUrl: '...' });
+store.on('node:data-changed', ({ uid, data, node }) => {
+    getVectorInterface(uid)?.setComposedForms(data.composedForms);
+});
+```
+
+::: tip Shallow merge
+`setNodeData` uses `Object.assign` — top-level keys are merged, nested objects are replaced wholesale. To update a single nested key, spread the existing value: `{ meta: { ...node.meta, key: val } }`.
+:::
+
 ### Layout
 
 #### `computeLayout(options?)`
