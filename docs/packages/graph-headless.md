@@ -617,6 +617,76 @@ if (result) {
 
 ---
 
+## Objects API
+
+A graph object is a third entity type — anchored to a node, positioned by offset, and carrying opaque data. Objects pan/zoom with the canvas and reposition automatically when their anchor node is dragged. Use them for progress indicators, selection halos, annotation bubbles, connection hints, or any decorator that must track a node.
+
+```js
+// Add a progress ring anchored to a node
+store.addObject('progress-abc', {
+    anchoredTo: 'node-abc',
+    offset:     { x: 60, y: -20 },   // top-right of node
+    movable:    false,
+    type:       'progress-ring',
+    progress:   0.6,
+});
+
+// React in presentation layer
+store.on('objects:changed', ({ objects }) => renderObjects(objects));
+store.on('object:moved',    ({ uid, x, y }) => repositionObject(uid, x, y));
+```
+
+### Object shape
+
+| Field | Type | Description |
+|---|---|---|
+| `uid` | `string` | Unique identifier |
+| `anchoredTo` | `string` | UID of the anchor node |
+| `offset` | `{ x, y }` | Offset from anchor origin in SVG space. Default: `{ x: 0, y: 0 }` |
+| `movable` | `boolean` | Whether the object can be dragged. Default: `false` |
+| `type` | `string` | Opaque — presentation layer defines meaning |
+| `...data` | `any` | Any additional fields — stored and emitted as-is |
+
+### Methods
+
+#### `addObject(uid, config)` → `object | null`
+
+Add an object anchored to a node. Returns `null` with a console warning if the anchor node doesn't exist.
+
+#### `removeObject(uid)`
+
+Remove an object. When an anchor node is deleted, all its anchored objects are automatically removed.
+
+#### `moveObject(uid, offsetX, offsetY)`
+
+Update a movable object's offset. Emits `'object:moved'` with the new absolute SVG position.
+
+```js
+// Wire drag via bindNodeDrag
+bindNodeDrag(objectEl, {
+    getData: () => store.getObject(uid),
+    onDrag:  ({ dx, dy }) => {
+        const obj = store.getObject(uid);
+        store.moveObject(uid, obj.offset.x + dx, obj.offset.y + dy);
+    },
+});
+```
+
+#### `getObject(uid)` → `object | null`
+#### `getObjects()` → `object[]`
+#### `getObjectsForNode(nodeUid)` → `object[]`
+
+### Events
+
+| Event | Payload | When |
+|---|---|---|
+| `objects:changed` | `{ objects }` | After `addObject()` / `removeObject()` |
+| `object:moved` | `{ uid, x, y, offset, object }` | After `moveObject()` or when the anchor node is dragged |
+
+`x, y` in `object:moved` is the absolute SVG position — ready for `setAttribute('transform', ...)` without further math.
+
+---
+
 ## Ontology API
 
 ```js

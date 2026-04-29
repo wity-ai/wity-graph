@@ -386,6 +386,34 @@ toolbar.show('context-menu', { x: screenX, y: screenY }, menuData);
 
 ---
 
+## computeObjectPositions
+
+Derive absolute SVG positions for all graph objects. Objects are anchored to nodes — their absolute position is `anchor.x + offset.x, anchor.y + offset.y`. Pure math, no DOM.
+
+```js
+import { computeObjectPositions } from '@wity/graph-ui-compute';
+
+store.on('objects:changed', ({ objects }) => {
+    const positioned = computeObjectPositions(objects, store.getNodes());
+    keyedJoin(objectsLayer, '.graph-object', positioned, {
+        keyAttr:  'uid',
+        onCreate: (el, obj) => { el.innerHTML = objectMarkup(obj); },
+        onUpdate: (el, obj) => { el.setAttribute('transform', `translate(${obj.x},${obj.y})`); },
+        onExit:   (el)      => el.remove(),
+    });
+});
+
+// Also reposition on node drag (objects track their anchor)
+store.on('object:moved', ({ uid, x, y }) => {
+    const el = objectsLayer.querySelector(`[uid="${uid}"]`);
+    if (el) el.setAttribute('transform', `translate(${x},${y})`);
+});
+```
+
+Objects whose anchor node hasn't been placed yet (`x == null`) are skipped automatically.
+
+---
+
 ## Re-exports from graph-headless
 
 `@wity/graph-ui-compute` re-exports a subset of `@wity/graph-headless` so presentation layers can import everything from a single package.
