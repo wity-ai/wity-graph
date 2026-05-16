@@ -7,8 +7,11 @@ export default defineConfig({
 
   themeConfig: {
     nav: [
-      { text: 'Guide',     link: '/guide/architecture' },
-      { text: 'Packages',  link: '/packages/graph-headless' },
+      { text: 'Guide',          link: '/guide/architecture' },
+      { text: 'Packages',       link: '/packages/graph-headless' },
+      { text: 'llms.txt',       link: '/stack/knowledge-graph/llms.txt' },
+      { text: 'llms-full.txt',  link: '/stack/knowledge-graph/llms-full.txt' },
+      { text: 'llms-api.txt',   link: '/stack/knowledge-graph/llms-api.txt' },
     ],
 
     sidebar: [

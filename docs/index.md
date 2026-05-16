@@ -27,6 +27,11 @@ features:
 
 A production-grade directed graph library built in three independent, composable layers.
 
+> For AI coding agents:
+> [llms.txt](/stack/knowledge-graph/llms.txt) ·
+> [llms-full.txt](/stack/knowledge-graph/llms-full.txt) ·
+> [llms-api.txt](/stack/knowledge-graph/llms-api.txt)
+
 ## Packages
 
 | Package | Purpose | Use independently? |
