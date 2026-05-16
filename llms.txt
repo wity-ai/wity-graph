@@ -1,0 +1,49 @@
+# wity-graph
+
+A composable headless graph library for building knowledge graphs, agentic workflow visualisers, and directed graph UIs. Three packages with a strict layering contract — no DOM in the math layer, no math in the rendering layer.
+
+Current versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-player (separate repo)
+
+## Architecture
+
+Three composable layers. Each can be used independently.
+
+```
+@wity/graph-headless     — pure state, layout, geometry, ontology. Zero DOM.
+        ↓
+@wity/graph-ui-compute   — DOM bindings, SVG element ops, keyed diffing. Zero framework.
+        ↓
+presentation layer       — your Muffin / React / Svelte / vanilla component
+```
+
+Import paths:
+- `import { GraphStore, GraphCanvasState, SelectionManager, ... } from '@wity/graph-headless'`
+- `import { bindPanZoom, bindNodeDrag, keyedJoin, ... } from '@wity/graph-ui-compute'`
+- `import { GraphPlayer, NODE_STATUS } from '@wity/graph-player'`
+
+IMPORTANT: `getNodeTypeConfig` must be imported from `@wity/graph-headless` directly, never from `@wity/graph-ui-compute` (dual-module-instance issue — separate NODE_TYPES registry).
+
+Canonical setup:
+```js
+const store  = new GraphStore({ viewport: { width, height } });
+const canvas = new GraphCanvasState(store, { width, height, minZoom: 0.1, maxZoom: 5 });
+const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(svgEl, viewportEl, canvas);
+```
+
+---
+
+## Documentation pages
+
+### @wity/graph-headless
+- [graph-headless API](/packages/graph-headless) — GraphStore, SelectionManager, PlaceholderManager, PanZoomState, GraphCanvasState, traversal, geometry, layout, ontology, objects, actors, BatchProcessor
+
+### @wity/graph-ui-compute
+- [graph-ui-compute API](/packages/graph-ui-compute) — bindPanZoom, bindNodeDrag, bindPortDrag, bindContextMenu, bindCursorCapture, keyedJoin, SVG element ops, computePortDots, computeObjectPositions, createToolbarRegistry
+
+### @wity/graph-player
+- [graph-player API](/packages/graph-player) — GraphPlayer, NODE_STATUS, playback modes, timeline construction, custom events
+
+### Guides
+- [Architecture](/guide/architecture) — layer contract, coordinate systems, event flow
+- [Ontology](/guide/ontology) — node types, link types, registerNodeType, patchNodeType
+- [Actors & Sessions](/guide/actors-and-sessions) — ActorRegistry, SessionLog, PresenceState, cursor capture

@@ -1,0 +1,707 @@
+# wity-graph — Full Documentation
+
+Versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-player (separate repo)
+
+---
+
+## QUICK REFERENCE — read this first
+
+### Architecture
+Three composable layers. Each can be used independently.
+
+```
+@wity/graph-headless     — pure state, layout, geometry, ontology. Zero DOM.
+        ↓
+@wity/graph-ui-compute   — DOM bindings, SVG element ops, keyed diffing. Zero framework.
+        ↓
+presentation layer       — your Muffin / React / Svelte / vanilla component
+```
+
+### Canonical setup
+```js
+import { GraphStore, GraphCanvasState, SelectionManager } from '@wity/graph-headless';
+import { bindPanZoom, keyedJoin } from '@wity/graph-ui-compute';
+
+const store  = new GraphStore({ viewport: { width, height } });
+const canvas = new GraphCanvasState(store, { width, height, minZoom: 0.1, maxZoom: 5 });
+const selection = new SelectionManager(store);
+
+const { applyTransform, animateTo, animateToFit, destroy } =
+  bindPanZoom(svgEl, viewportEl, canvas);
+
+store.on('layout:computed', ({ nodes, edges }) => render(nodes, edges));
+store.ingest(nodesData);
+```
+
+### Critical import rule
+`getNodeTypeConfig` MUST be imported from `@wity/graph-headless`, never from `@wity/graph-ui-compute`. The two packages maintain separate module instances — importing from ui-compute gives a disconnected `NODE_TYPES` registry that ignores your `registerNodeType` calls.
+
+### All GraphStore events
+```
+'nodes:changed'        { nodes }
+'edges:changed'        { edges }
+'layout:computed'      { nodes, edges }
+'node:removed'         { uid, descendants }          — before single removal
+'nodes:removed'        { uids, nodes }               — before bulk removal
+'node:moved'           { uid, x, y, node }
+'node:status-changed'  { uid, status, node }
+'node:style-changed'   { uid, styleObj, node }
+'node:data-changed'    { uid, data, node }
+'objects:changed'      { objects }
+'object:moved'         { uid, x, y, offset, object } — x,y = absolute SVG position
+```
+
+### Fit-to-content pattern
+```js
+import { getFitToContent } from '@wity/graph-headless';
+const fit = getFitToContent(store.getNodes(), canvas.getViewport());
+animateToFit(fit);   // NOT animateTo — pan is computed at target zoom
+```
+
+### Objects (decorator anchors)
+```js
+store.addObject('ring-1', { anchoredTo: 'node-abc', offset: { x: 60, y: -20 }, movable: false, type: 'progress-ring', progress: 0.6 });
+store.on('object:moved', ({ uid, x, y }) => reposition(uid, x, y));
+// object:moved fires automatically when anchor node is dragged
+// deleting anchor node auto-removes its objects
+```
+
+### Edge className
+```js
+createEdgeElement(parentEl, { ...edge, style: { stroke: '#999', className: 'animated-edge' } });
+// className applied via baseVal — survives keyedJoin re-renders
+```
+
+### registerNodeType
+```js
+registerNodeType('media', {
+  label:  'Media',
+  layout: { xSpacing: 300, ySpacing: 150, width: 240, height: 200 },
+  ports:  { inputs: [{ id: 'in', side: 'input', yFraction: 0.5, xOffset: 0 }], outputs: [] },
+  // style is optional — defaults to { nodeClass: '', containerClass: '' }
+});
+```
+
+---
+
+# @wity/graph-headless
+
+Pure state, layout, traversal, geometry, and ontology. No DOM, no framework, zero dependencies.
+
+```js
+import { GraphStore, SelectionManager, /* ... */ } from '@wity/graph-headless';
+```
+
+---
+
+## GraphStore
+
+The central state container. Extends `EventBus`. Owns all node and edge data, drives layout, and emits events.
+
+### Constructor
+
+```js
+const store = new GraphStore(options);
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `viewport` | `{ width, height }` | `{ width: 800, height: 600 }` | Canvas dimensions — used to centre the root node during layout |
+| `defaultActions` | `object[]` | `[]` | Graph-level fallback actions when a node has no `availableActions` |
+| `defaultStyleConfig` | `object[]` | `[]` | Graph-level fallback style config |
+
+### Node data schema
+
+Fields recognised by GraphStore. All are optional except `uid` (auto-generated if absent).
+
+```js
+{
+  uid:          string,       // unique identifier; auto-generated if absent
+  pubKey:       string,       // temp client uid for deduplication (see addNode)
+  type:         string,       // node type: 'continuant' | 'occurant' | custom
+  variant:      string,       // UI extension point, carried opaquely
+  title:        string,
+  content:      string,       // also accepts msg alias
+  message:      string,       // also accepts rawMsg alias
+  styleClass:   string,       // CSS class on the node wrapper
+  styleObj:     object,       // per-node committed visual overrides — write via setNodeStyle()
+  availableStyleConfig: object[],
+  showStylePanel: boolean,    // default true
+  links:        { targetUid, type? }[],
+  tags:         string[],
+  status:       string,       // occurant lifecycle status
+  availableActions:   object[],
+  contextMenuActions: object[],
+  createdAt:    number,       // epoch ms
+  startedAt:    number,
+  completedAt:  number,
+  erroredAt:    number,
+  cancelledAt:  number,
+  createdBy:    string,       // actorId
+  updatedBy:    string[],
+}
+```
+
+### Node CRUD
+
+`addNode(data)` → `node` — Add or upsert. Handles `pubKey` deduplication.
+`updateNode(uid, data)` → `node | null` — Partial update.
+`removeNode(uid)` — Emits `'node:removed'` BEFORE deletion. Use for exit animations.
+`removeNodes(uids[])` — Emits `'nodes:removed'` BEFORE deletion. Coalesces events.
+`getNode(uid)` → `node | null` — Direct reference, not a copy. Do not mutate directly.
+`getNodes()` → `node[]`
+`hasNode(uid)` → `boolean`
+`nodeCount` → `number`
+
+### Edge CRUD
+
+`addEdge({ srcUid, targetUid, type?, createdBy?, forceUpdate? })` → `edge | null`
+`removeEdge(uid)`
+`getEdge(uid)` → `edge | null`
+`getEdges()` → `edge[]`
+`refreshEdgePath(edgeUid)` → `edge`
+`refreshEdgePathsOfNode(nodeUid)` — Called internally by `moveNode`.
+
+### Targeted mutations
+
+`moveNode(uid, x, y)` → `node | null` — Emits `'node:moved'`. Also emits `'object:moved'` for anchored objects.
+`setNodeStatus(uid, status)` — Emits `'node:status-changed'`.
+`setNodeStyle(uid, styleObj)` — Emits `'node:style-changed'`. Always use this instead of mutating `node.styleObj` directly.
+`getNodeStyle(uid)` → `object | null`
+`setNodeData(uid, data)` — `Object.assign` shallow merge. Emits `'node:data-changed'`. For opaque external data (media, AI results, composed forms).
+`getNodeData(uid)` → `node | null` — full node ref
+
+### Objects API
+
+A third entity type anchored to a node. Repositions automatically on anchor drag. Deleted with anchor.
+
+```js
+store.addObject('progress-abc', {
+    anchoredTo: 'node-abc',
+    offset:     { x: 60, y: -20 },
+    movable:    false,
+    type:       'progress-ring',
+    progress:   0.6,
+});
+store.on('objects:changed', ({ objects }) => renderObjects(objects));
+store.on('object:moved',    ({ uid, x, y }) => repositionObject(uid, x, y));
+```
+
+`addObject(uid, config)` → `object | null`
+`removeObject(uid)`
+`moveObject(uid, offsetX, offsetY)` — updates offset, emits `'object:moved'`
+`getObject(uid)` → `object | null`
+`getObjects()` → `object[]`
+`getObjectsForNode(nodeUid)` → `object[]`
+
+Object events:
+- `'objects:changed'` → `{ objects }` — after addObject / removeObject
+- `'object:moved'` → `{ uid, x, y, offset, object }` — x,y is absolute SVG position
+
+### Layout
+
+`computeLayout(options?)` — options: `{ paginationThreshold }`. Already-placed nodes skipped.
+`ingest(nodesData[], options?)` — Batch add, build edges, compute layout, single event set.
+`updateNodesBatch(updates[], field)` — field: `'content' | 'style' | 'tags'`
+`batch(fn)` — Sync only. Defers all events until fn completes.
+
+### Action resolution
+
+`resolveActionsForSelection(uids[])` → `object[]`
+`resolveContextMenuActions(uid)` → `object[]`
+`setDefaultActions(actions)` / `getDefaultActions()`
+`setDefaultStyleConfig(config)` / `getDefaultStyleConfig()`
+`setDefaultContextMenuActions(actions)` / `getDefaultContextMenuActions()`
+
+### Viewport + lifecycle
+
+`setViewport({ width, height })` / `getViewport()` → `{ width, height }`
+`destroy()`
+
+---
+
+## EventBus
+
+```js
+on(event, handler)    → () => void
+once(event, handler)  → () => void
+off(event, handler)
+emit(event, payload)
+clear(event?)
+```
+
+Wildcard: `store.on('*', ({ event, payload }) => ...)` receives all events.
+
+---
+
+## SelectionManager
+
+```js
+const selection = new SelectionManager(store);
+```
+
+Auto-deselects on `'node:removed'` / `'nodes:removed'`. Emits one `'selection:changed'` for bulk removals.
+
+`select(uid, { addToSelection? })` / `deselect(uid)` / `toggle(uid, { addToSelection? })` / `clear(excludeUids?)`
+
+Queries: `getSelected()`, `getSelectedUids()`, `isSelected(uid)`, `count`, `isMulti`, `lastSelected`, `lastDeselected`, `compositeUid`, `compositeLabel`
+
+Event: `'selection:changed'` → `{ selected, lastSelected, lastDeselected, isMulti, compositeUid, compositeLabel }`
+
+---
+
+## PlaceholderManager
+
+```js
+const dragLink = new PlaceholderManager(store, {
+  snapThreshold:  300,
+  // snapXThreshold: 400, snapYThreshold: 200,  // per-axis override
+});
+```
+
+State: `idle → start() → active → commit()|cancel() → idle`
+
+`start(fromUid)` / `update(x, y, xThreshold?, yThreshold?)` / `commit(explicitTargetUid?)` / `cancel()`
+
+Events: `'draglink:started'`, `'draglink:updated'`, `'draglink:committed'`, `'draglink:cancelled'`
+
+---
+
+## PanZoomState
+
+```js
+const panZoom = new PanZoomState({ minZoom: 0.1, maxZoom: 5 });
+```
+
+Use directly only for pan/zoom without GraphStore. For graph use, `GraphCanvasState` wraps this internally.
+
+`setPan(x, y)` / `panBy(dx, dy)` / `zoomToPoint(zoom, screenX, screenY)` / `zoomToCenter(zoom, vpWidth, vpHeight)` / `setZoomRaw(v)` / `setMinZoom(v)` / `setMaxZoom(v)`
+
+Queries: `pan → { x, y }`, `zoom → number`, `screenToSvg(sx, sy) → { x, y }`, `svgToScreen(svgX, svgY) → { x, y }`, `getTransform() → string`
+
+---
+
+## GraphCanvasState
+
+```js
+const canvas = new GraphCanvasState(store, { width: 1200, height: 800, minZoom: 0.1, maxZoom: 5 });
+// PanZoomState is created internally — do not instantiate separately
+```
+
+`setViewport(w, h)` / `getViewport()` / `getTransform()` / `pan` / `zoom`
+`setPan(x, y)` / `panBy(dx, dy)` / `setZoomRaw(v)` / `setMinZoom(v)` / `setMaxZoom(v)`
+`zoomToPoint(newZoom, screenX, screenY)` / `zoomToCenter(newZoom)` — wraps viewport dimensions automatically
+`screenToSvg(sx, sy)` → `{ x, y }` / `svgToScreen(svgX, svgY)` → `{ x, y }`
+`getNodeScreenRect(uid)` → `{ x, y, width, height } | null`
+`getOverlayAnchor(uid, gap?)` → `{ x, y } | null`
+`getPanTargetForNode(uid, { zoom?, xOffset?, yOffset? })` → `{ x, y } | null`
+`isNodeInViewport(uid)` → `boolean`
+
+---
+
+## Traversal
+
+Pure functions. Via store delegates: `store.getChildren(uid)`, etc.
+
+`getChildren(uid, nodes)` / `getDescendants(uid, nodes)` / `getParents(uid, nodes)` / `getAncestors(uid, nodes)` / `getRoots(nodes)`
+`getEdgesOfNode(uid, edges)` / `getOutgoingEdges(uid, edges)` / `getIncomingEdges(uid, edges)`
+`findCommonParent(uidA, uidB, nodes)` → `node | false`
+`getDepth(uid, nodes)` → `number`
+
+All return node objects. For UIDs: `result.map(n => n.uid)`.
+
+---
+
+## Layout
+
+`computeLayout(nodes, viewBox, options)` → `node[]` — called internally by `store.computeLayout()`
+`computeNodePosition(node, idx, nodes, viewBox, options)` → `node` — idempotent
+`getNodesAroundPoint(x, y, nodes, xThreshold, yThreshold, excludeUids)` → `node[]`
+`rectsOverlap(a, b)` → `boolean`
+`getOverlappingNodes(nodes)` → `[node, node][]`
+`resolveOverlaps(nodes, padding?)` → `node[]`
+
+---
+
+## Geometry
+
+```js
+// Point / rect
+getNodeAtPoint(x, y, nodes, { exclude?, padding? })  → node | null
+getNodesInRect(rx, ry, rw, rh, nodes)                → node[]
+
+// Port
+getPortSvgPos(node, portId, getConfig)               → { x, y } | null
+getPortDots(node, getConfig)                         → object[]
+getActiveInputPorts(node, edges, getConfig)           → object[]
+getDefaultOutputPortId(type, getConfig)              → string
+getDefaultInputPortId(type, getConfig)               → string
+
+// Path
+horizontalLinkPath(source, target)                   → string   // [x,y] args
+computeNodeLinkPath(srcNode, tgtNode, getConfig, srcPortId?, tgtPortId?)  → string
+
+// Fit / pan
+getPanTargetForNode(node, layout, viewport, opts)    → { x, y }
+getFitToContent(nodes, viewport, { padding?, minZoom?, maxZoom? })  → { pan, zoom } | null
+// Accepts any { x, y, w, h }[] — not just store.getNodes(). Unplaced nodes skipped.
+// Use animateToFit (not animateTo) for animated fit
+```
+
+---
+
+## Ontology
+
+```js
+NODE_TYPES        // { CONTINUANT: 'continuant', OCCURANT: 'occurant', PLACEHOLDER: 'placeholder' }
+DEFAULT_NODE_TYPE // 'continuant'
+LINK_TYPES        // { DEFAULT: 'default', PLACEHOLDER: 'placeholder', SEMANTIC: 'semantic' }
+DEFAULT_LINK_TYPE // 'default'
+
+getNodeTypeConfig(type)  → config   // fallback to 'continuant'
+getLinkTypeConfig(type)  → config
+
+registerNodeType(name, config)
+// style field optional — defaults to { nodeClass: '', containerClass: '' }
+// call before addNode() — w/h stamped at creation time
+
+patchNodeType(name, patch)
+// deep-merges per structural key: layout, ports, style
+// call before addNode() for affected nodes
+```
+
+---
+
+## Actors & Session
+
+```js
+import { ActorRegistry, SessionLog, PresenceState } from '@wity/graph-headless';
+```
+
+`ActorRegistry` — lookup store: actorId → display metadata
+`SessionLog` — append-only log; auto-captures store events; `record(event)`, `getEvents()`
+`PresenceState` — live per-actor cursor + selection; emits `'presence:updated'`
+
+---
+
+## BatchProcessor
+
+```js
+const queue = new BatchProcessor({ intervalMs: 50 });
+queue.enqueue(async () => await fetchNode('a'));
+await queue.drain();
+```
+
+`enqueue(fn)` → `this` / `drain()` → `Promise` / `size` / `busy` / `clear()`
+
+---
+
+# @wity/graph-ui-compute
+
+DOM geometry, interaction bindings, and keyed diffing. Sits between `graph-headless` and the presentation layer. Zero framework dependencies. Zero D3.
+
+```js
+import { bindPanZoom, bindNodeDrag, keyedJoin, /* ... */ } from '@wity/graph-ui-compute';
+```
+
+---
+
+## bindPanZoom
+
+```js
+const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(
+  targetEl,
+  viewportEl,   // <g class="kg-viewport"> or null in CSS mode
+  canvas,       // GraphCanvasState or PanZoomState
+  {
+    mode?:             'svg' | 'css',   // inferred from onApplyTransform if omitted
+    onApplyTransform?: (transformStr) => void,
+    dragTarget?:       'background' | 'any',   // default 'background'
+    onTransformChange?: () => void,
+  }
+);
+```
+
+`applyTransform()` — apply current state to DOM immediately
+`animateTo(targetPan, targetZoom?, onComplete?, focalPoint?)` — sequential pan(300ms linear) then zoom(250ms ease-in). Do NOT use for fit-all.
+`animateToFit(fitResult, onComplete?)` — simultaneous pan+zoom, 350ms ease-out cubic. Pass `getFitToContent()` result. No-op if null.
+`destroy()` — remove all event listeners
+
+---
+
+## bindNodeDrag
+
+```js
+bindNodeDrag(nodeEl, {
+  getData:  () => store.getNode(uid),
+  onStart:  (datum, event) => void,
+  onDrag:   ({ dx, dy, sourceEvent }, datum) => store.moveNode(datum.uid, datum.x + dx, datum.y + dy),
+  onEnd:    (datum, event) => void,
+});
+```
+
+3px threshold. `dx/dy` = delta from last position. Uses `setPointerCapture`.
+
+---
+
+## bindPortDrag
+
+```js
+const binding = bindPortDrag(portEl, viewportEl, {
+  onStart:    (svgX, svgY) => void,
+  onMove:     (svgX, svgY) => void,
+  onDrop:     (svgX, svgY) => void,
+  onCancel:   () => void,
+  throttleMs?: 16,
+});
+binding.destroy();
+```
+
+---
+
+## bindContextMenu
+
+```js
+const unbind = bindContextMenu(svgEl, containerEl, {
+  onNodeContext:   (uid, { x, y }) => void,
+  onCanvasContext: ({ x, y }) => void,
+});
+unbind();
+```
+
+Coordinates are container-relative screen coordinates.
+
+---
+
+## bindCursorCapture
+
+```js
+const capture = bindCursorCapture(svgEl, panZoomState, {
+  onMove:      ({ x, y, timestamp }) => void,   // SVG-space coordinates
+  throttleMs:  50,
+});
+capture.destroy();
+```
+
+---
+
+## keyedJoin
+
+Framework-agnostic keyed DOM reconciliation. Replaces D3's `.data().join()`.
+
+```js
+keyedJoin(parentEl, '.node', nodes, {
+  keyAttr:  'uid',
+  onCreate: (el, datum) => { el.innerHTML = markup(datum); },
+  onUpdate: (el, datum) => { updatePosition(el, datum); },
+  onExit:   (el) => { el.classList.add('exit'); setTimeout(() => el.remove(), 300); },
+});
+```
+
+Processing order: exit → enter/update.
+
+---
+
+## SVG element operations
+
+All SVG namespace knowledge is centralised here. Presentation layer never writes SVG namespace strings.
+
+```js
+ensureLayer(parentEl, className, beforeEl?)          → SVGGElement
+
+createNodeElement(parentEl, datum, markupStr, beforeEl?)
+updateNodePosition(el, { x, y, w, h })
+
+createEdgeElement(parentEl, datum)
+// datum.style: { stroke, strokeWidth?, dashArray?, className? }
+// className applied via baseVal — survives keyedJoin re-renders
+updateEdgePath(el, datum)
+
+createPortDot(parentEl, datum)
+// datum.style: { color?, radius?, stroke?, strokeWidth?, opacity?, className? }
+updatePortDotPosition(el, datum)
+
+createTouchPointElement(parentEl, datum)
+updateTouchPointPosition(el, datum)
+
+createPlaceholderLinkElement(parentEl, datum, pathStr)
+updatePlaceholderLinkPath(el, pathStr)
+```
+
+---
+
+## computePortDots
+
+```js
+import { computePortDots }  from '@wity/graph-ui-compute';
+import { getNodeTypeConfig } from '@wity/graph-headless';   // MUST be from graph-headless
+
+const dots = computePortDots(store.getNodes(), getNodeTypeConfig);
+// → [{ nodeUid, portId, side, x, y, style: { color, radius } }]
+```
+
+`getNodeTypeConfig` must come from `@wity/graph-headless` — ui-compute bundles its own copy internally (separate registry).
+
+---
+
+## computeObjectPositions
+
+```js
+import { computeObjectPositions } from '@wity/graph-ui-compute';
+
+store.on('objects:changed', ({ objects }) => {
+    const positioned = computeObjectPositions(objects, store.getNodes());
+    // positioned = [...object, x: absoluteX, y: absoluteY]
+    keyedJoin(objectsLayer, '.graph-object', positioned, {
+        keyAttr:  'uid',
+        onCreate: (el, obj) => { el.setAttribute('transform', `translate(${obj.x},${obj.y})`); },
+        onUpdate: (el, obj) => { el.setAttribute('transform', `translate(${obj.x},${obj.y})`); },
+        onExit:   (el) => el.remove(),
+    });
+});
+
+store.on('object:moved', ({ uid, x, y }) => {
+    const el = objectsLayer.querySelector(`[uid="${uid}"]`);
+    if (el) el.setAttribute('transform', `translate(${x},${y})`);
+});
+```
+
+Unplaced anchor nodes skipped automatically.
+
+---
+
+## relativeScreenPos
+
+```js
+const { x, y } = relativeScreenPos(containerEl, targetEl);
+// Use as CSS left/top for overlays inside containerEl
+```
+
+---
+
+## createToolbarRegistry
+
+```js
+const toolbar = createToolbarRegistry();
+toolbar.register({ id, side: 'right'|'top'|'cursor', getComponent, getSlot });
+toolbar.show(id, nodeEl, data);       // or toolbar.show(id, { x, y }, data) for cursor mode
+toolbar.hide(id);
+toolbar.hideAll();
+toolbar.repositionAll();              // call on pan/zoom
+toolbar.beginDrag(nodeUid);
+toolbar.endDrag();
+toolbar.destroy();
+```
+
+Side `'cursor'` hides on pan/zoom instead of repositioning.
+
+---
+
+## svgPointer
+
+```js
+const [x, y] = svgPointer(event, svgEl);
+// x, y in svgEl's coordinate space
+```
+
+---
+
+## Re-exports from graph-headless (safe — same instance)
+
+```js
+import { getNodeAtPoint, getNodesInRect, horizontalLinkPath } from '@wity/graph-ui-compute';
+```
+
+Do NOT import `getNodeTypeConfig` from here — use `@wity/graph-headless` directly.
+
+---
+
+# @wity/graph-player
+
+Temporal simulation engine. Replays a `{ nodes, edges }` snapshot progressively as a timed event stream. No DOM. Works with any presentation layer.
+
+```js
+import { GraphPlayer, NODE_STATUS } from '@wity/graph-player';
+```
+
+---
+
+## Setup
+
+```js
+const player = new GraphPlayer(snapshot, options);
+
+player.on('node:appear', ({ node })        => store.addNode(node));
+player.on('edge:appear', ({ edge })        => store.addEdge(edge));
+player.on('node:update', ({ uid, status }) => store.setNodeStatus(uid, status));
+player.on('complete',    ()                => console.log('done'));
+player.on('reset',       ()                => store.destroy());
+
+player.play();
+```
+
+---
+
+## Constructor
+
+```js
+new GraphPlayer(snapshot, {
+  mode?:      'sequential' | 'speed' | 'realtime' | 'maxGap',  // default 'sequential'
+  speed?:     1,
+  maxGap?:    3000,
+  interval?:  800,
+  loop?:      false,
+  loopDelay?: 2000,
+})
+```
+
+### snapshot
+
+```js
+{
+  nodes:   node[],   // temporal fields: createdAt, startedAt, completedAt, erroredAt, cancelledAt
+  edges:   edge[],   // temporal field: createdAt (defaults to max of endpoint createdAt)
+  events?: event[],  // custom timeline events: { type, t, payload, actorId? }
+}
+```
+
+### Playback modes
+
+| Mode | Behaviour |
+|---|---|
+| `'sequential'` | Ignores timestamps. Fixed `interval` ms between events. |
+| `'speed'` | Real gaps ÷ `speed`. `speed: 2` = 2× real time. |
+| `'realtime'` | Exact real timestamp gaps. |
+| `'maxGap'` | Real gaps, clamped to `maxGap` ms. |
+
+---
+
+## Methods & properties
+
+`play()` / `pause()` / `reset()`
+`isPlaying → boolean` / `eventCount → number` / `progress → number (0–1)`
+
+---
+
+## Events
+
+```
+'node:appear'   { node }
+'edge:appear'   { edge }
+'node:update'   { uid, status }
+'reset'         {}
+'complete'      {}
+// + any custom event type from snapshot.events[].type
+```
+
+---
+
+## NODE_STATUS
+
+```js
+NODE_STATUS.CREATED    // 'created'
+NODE_STATUS.RUNNING    // 'running'
+NODE_STATUS.COMPLETED  // 'completed'
+NODE_STATUS.ERRORED    // 'errored'
+NODE_STATUS.CANCELLED  // 'cancelled'
+```
