@@ -1,3 +1,25 @@
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "wity-graph",
+  "description": "Open-source headless graph library powering knowledge graph visualisation and agentic session replay in Wity AI. Three composable layers — pure state, DOM bindings, temporal replay. Zero dependencies.",
+  "url": "https://www.wity.ai/stack/knowledge-graph/",
+  "programmingLanguage": "JavaScript",
+  "keywords": "knowledge graph, headless graph library, agentic session, directed graph, javascript, graph visualisation",
+  "author": {
+    "@type": "Organization",
+    "name": "Wity AI",
+    "url": "https://www.wity.ai"
+  },
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "Wity AI",
+    "url": "https://www.wity.ai"
+  }
+}
+</script>
+
 ---
 layout: home
 
