@@ -42,15 +42,13 @@ A production-grade directed graph library built in three independent, composable
 import {
   GraphStore,
   SelectionManager,
-  PanZoomState,
   GraphCanvasState,
 } from '@wity/graph-headless';
 
 // Create the store
-const store = new GraphStore({ viewport: { width: 1200, height: 800 } });
+const store  = new GraphStore({ viewport: { width: 1200, height: 800 } });
 const selection = new SelectionManager(store);
-const panZoom = new PanZoomState();
-const canvas = new GraphCanvasState(store, panZoom, { width: 1200, height: 800 });
+const canvas = new GraphCanvasState(store, { width: 1200, height: 800, minZoom: 0.1, maxZoom: 5 });
 
 // React to changes
 store.on('layout:computed', ({ nodes, edges }) => render(nodes, edges));

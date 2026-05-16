@@ -29,9 +29,9 @@ const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `mode` | `'svg' \| 'css'` | `'svg'` | `'svg'` writes `transform` attribute on `viewportEl`. `'css'` calls `onApplyTransform` instead |
-| `onApplyTransform` | `(transformStr) => void` | — | Required in CSS mode |
-| `dragTarget` | `'background' \| 'any'` | `'background'` | `'background'` requires SVG drag (default). `'any'` captures any pointer (use in CSS mode) |
+| `mode` | `'svg' \| 'css'` | inferred | `'svg'` writes `transform` attribute on `viewportEl`. `'css'` calls `onApplyTransform`. If omitted, inferred: CSS mode when `onApplyTransform` is provided, SVG mode otherwise |
+| `onApplyTransform` | `(transformStr) => void` | — | CSS mode: called with transform string on every change instead of writing to `viewportEl` |
+| `dragTarget` | `'background' \| 'any'` | `'background'` | `'background'` — drag only starts on SVG background (default). `'any'` — drag starts on any pointer event (use in CSS mode) |
 
 ### Returns
 
@@ -274,13 +274,14 @@ updatePlaceholderLinkPath(el, pathString);
 Derive render-ready port dot data from all nodes.
 
 ```js
-import { computePortDots, getNodeTypeConfig } from '@wity/graph-ui-compute';
+import { computePortDots }  from '@wity/graph-ui-compute';
+import { getNodeTypeConfig } from '@wity/graph-headless';   // must come from graph-headless directly
 
 const dots = computePortDots(store.getNodes(), getNodeTypeConfig);
 // → [{ nodeUid, portId, side, x, y, style: { color, radius } }, ...]
 ```
 
-The second argument is the config resolver — pass `getNodeTypeConfig` from `@wity/graph-headless` (re-exported from `@wity/graph-ui-compute` so no extra import is needed).
+The second argument is the config resolver. It **must** be imported from `@wity/graph-headless` directly — not from `@wity/graph-ui-compute`. `graph-ui-compute` bundles its own copy of `graph-headless` internally, so re-exporting `getNodeTypeConfig` from it would give you a separate `NODE_TYPES` registry disconnected from your `registerNodeType` calls.
 
 Feed directly into `keyedJoin` + `createPortDot`/`updatePortDotPosition`.
 
@@ -423,7 +424,6 @@ import {
   getNodeAtPoint,
   getNodesInRect,
   horizontalLinkPath,
-  getNodeTypeConfig,
 } from '@wity/graph-ui-compute';
 ```
 
@@ -432,4 +432,7 @@ import {
 | `getNodeAtPoint(x, y, nodes, opts?)` | Hit-test a point against node bounding boxes. Options: `exclude: string[]`, `padding: number` |
 | `getNodesInRect(rx, ry, rw, rh, nodes)` | All nodes overlapping a rectangle (rubber-band selection) |
 | `horizontalLinkPath(source, target)` | Raw cubic bezier SVG `d` string between two `[x, y]` points |
-| `getNodeTypeConfig(type)` | Config resolver — required as second arg to `computePortDots` |
+
+::: warning getNodeTypeConfig is not re-exported here
+Import `getNodeTypeConfig` directly from `@wity/graph-headless`. See [computePortDots](#computeportdots) for why.
+:::

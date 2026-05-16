@@ -412,11 +412,16 @@ dragLink.on('draglink:cancelled', ({ fromNode }) => { ... });
 
 ## PanZoomState
 
-Headless pan/zoom state machine. No DOM.
+Headless pan/zoom state machine. No DOM. Use directly when you need pan/zoom without a GraphStore (e.g. a plain SVG canvas). For graph use cases, `GraphCanvasState` wraps this internally — prefer that.
 
 ```js
 const panZoom = new PanZoomState({ minZoom: 0.1, maxZoom: 5 });
 ```
+
+| Option | Default | Description |
+|---|---|---|
+| `minZoom` | `0.05` | Floor on zoom level |
+| `maxZoom` | `10` | Ceiling on zoom level |
 
 ### Mutations
 
@@ -425,10 +430,10 @@ const panZoom = new PanZoomState({ minZoom: 0.1, maxZoom: 5 });
 | `setPan(x, y)` | Set pan in screen pixels |
 | `panBy(dx, dy)` | Relative pan |
 | `zoomToPoint(zoom, screenX, screenY)` | Zoom while keeping screen point fixed (wheel zoom) |
-| `zoomToCenter(zoom)` | Zoom around viewport centre (programmatic) |
+| `zoomToCenter(zoom, vpWidth, vpHeight)` | Zoom around viewport centre (programmatic) |
 | `setZoomRaw(zoom)` | Set zoom without adjusting pan |
-| `setMinZoom(v)` | |
-| `setMaxZoom(v)` | |
+| `setMinZoom(v)` | Override min zoom after construction |
+| `setMaxZoom(v)` | Override max zoom after construction |
 
 ### Queries
 
@@ -436,18 +441,25 @@ const panZoom = new PanZoomState({ minZoom: 0.1, maxZoom: 5 });
 |---|---|
 | `pan` | `{ x, y }` |
 | `zoom` | `number` |
-| `screenToSvg(sx, sy)` | `[svgX, svgY]` |
-| `svgToScreen(svgX, svgY)` | `[screenX, screenY]` |
+| `screenToSvg(sx, sy)` | `{ x, y }` — screen → SVG space |
+| `svgToScreen(svgX, svgY)` | `{ x, y }` — SVG → screen space |
 
 ---
 
 ## GraphCanvasState
 
-Single source of truth for all computed canvas state. Composes `GraphStore` + `PanZoomState` + viewport.
+Single source of truth for all computed canvas state. Composes `GraphStore` + `PanZoomState` + viewport. `PanZoomState` is created internally — no need to instantiate it separately.
 
 ```js
-const canvas = new GraphCanvasState(store, panZoom, { width: 1200, height: 800 });
+const canvas = new GraphCanvasState(store, { width: 1200, height: 800, minZoom: 0.1, maxZoom: 5 });
 ```
+
+| Option | Default | Description |
+|---|---|---|
+| `width` | `800` | Viewport width in px |
+| `height` | `600` | Viewport height in px |
+| `minZoom` | `0.05` | Passed through to `PanZoomState` |
+| `maxZoom` | `10` | Passed through to `PanZoomState` |
 
 ### Methods
 
