@@ -17,9 +17,9 @@ Three composable layers. Each can be used independently.
 presentation layer       — your Muffin / React / Svelte / vanilla component
 ```
 
-### Canonical setup
+### Canonical setup (visual graph)
 ```js
-import { GraphStore, GraphCanvasState, SelectionManager } from '@wity/graph-headless';
+import { GraphAbstract, GraphStore, GraphCanvasState, SelectionManager } from '@wity/graph-headless';
 import { bindPanZoom, keyedJoin } from '@wity/graph-ui-compute';
 
 const store  = new GraphStore({ viewport: { width, height } });

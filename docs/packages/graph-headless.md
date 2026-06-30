@@ -8,6 +8,78 @@ import { GraphStore, SelectionManager, /* ... */ } from '@wity/graph-headless';
 
 ---
 
+## GraphAbstract
+
+Pure combinatorial graph — vertices and typed edges only. No coordinates, no geometry, no ports, no render styles, no layout. The mathematical foundation: a graph defined entirely by its connectivity.
+
+Use `GraphAbstract` when only typed relationships matter — knowledge graphs, dependency graphs, AI session memory, environment knowledge. Use `GraphStore` when nodes have positions in a canvas and edges are drawn as paths.
+
+```js
+import { GraphAbstract } from '@wity/graph-headless';
+
+const graph = new GraphAbstract();
+```
+
+### Node CRUD
+
+```js
+addNode({ uid, type?, label?, data? })   → node        // upserts; merges data shallowly
+updateNode(uid, patch)                   → node | null  // merges patch.data into node.data
+removeNode(uid)                          → boolean      // removes node + all connected edges
+getNode(uid)                             → node | null
+hasNode(uid)                             → boolean
+getNodes()                               → node[]
+nodeCount()                              → number
+```
+
+### Edge CRUD
+
+Edge `uid` defaults to `${type}:${srcUid}→${targetUid}` — each (type, src, target) triple is naturally unique, so multiple edge types between the same node pair are fully supported.
+
+```js
+addEdge({ uid?, srcUid, targetUid, type?, data? })  → edge | null  // upserts; merges data
+removeEdge(uid)                                      → boolean
+getEdge(uid)                                         → edge | null
+hasEdge(uid)                                         → boolean
+getEdges()                                           → edge[]
+edgeCount()                                          → number
+```
+
+### Traversal
+
+```js
+getOutgoing(srcUid, type?)     → edge[]   // outgoing edges, optionally filtered by type
+getIncoming(targetUid, type?)  → edge[]   // incoming edges, optionally filtered by type
+getEdgesOf(nodeUid, type?)     → edge[]   // all edges (in or out), optionally filtered
+reachable(startUid, type?)     → node[]   // BFS — all reachable nodes, excludes startUid
+```
+
+### Query
+
+```js
+getNodesByType(type)   → node[]
+getEdgesByType(type)   → edge[]
+```
+
+### Serialise / hydrate
+
+```js
+serialise()             → { version, nodes, edges }   // plain object, safe for JSON
+hydrate(snapshot)       → void                         // clears and restores; no events emitted
+clone()                 → GraphAbstract               // deep copy via round-trip
+```
+
+### Events
+
+Extends `EventBus`. Same subscription API as `GraphStore`.
+
+```
+'nodes:changed'   { op: 'add'|'update'|'remove', uid }
+'edges:changed'   { op: 'add'|'update'|'remove', uid }
+```
+
+---
+
 ## GraphStore
 
 The central state container. Extends `EventBus`. Owns all node and edge data, drives layout, and emits events.

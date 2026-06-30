@@ -19,7 +19,11 @@
 ├─────────────────────────────┬────────────────────────────────┤
 │  GraphStore                 │  PanZoomState                  │
 │  node/edge data + layout    │  pan, zoom, coord math         │
-├──────────┬──────────────────┴──────────┬─────────────────────┤
+├─────────────────────────────┴────────────────────────────────┤
+│  GraphAbstract                                               │
+│  pure combinatorial graph — vertices + typed edges only      │
+│  no coordinates, no geometry, no embedding                   │
+├──────────┬───────────────────────────┬───────────────────────┤
 │  Layout  │  Traversal                  │  Geometry           │
 ├──────────┴─────────────────────────────┴─────────────────────┤
 │  Ontology  (node-types, link-types — BFO grounded)           │
@@ -199,9 +203,26 @@ store.batch(() => {
 
 ## Using layers independently
 
-### graph-headless only
+### GraphAbstract only — pure data graph
 
-Pure state logic — no DOM at all. Useful in server-side rendering, testing, or non-browser environments.
+No geometry, no layout, no positions. For knowledge graphs, dependency graphs, AI session memory — anywhere only connectivity and typed relationships matter.
+
+```js
+import { GraphAbstract } from '@wity/graph-headless';
+
+const graph = new GraphAbstract();
+graph.addNode({ uid: 'cmd:ls', type: 'command', label: 'ls' });
+graph.addNode({ uid: 'cmd:grep', type: 'command', label: 'grep' });
+graph.addEdge({ srcUid: 'cmd:ls', targetUid: 'cmd:grep', type: 'chains-with' });
+
+graph.getOutgoing('cmd:ls', 'chains-with');   // [{ uid, srcUid, targetUid, type, data }]
+graph.reachable('cmd:ls', 'chains-with');     // BFS — all reachable nodes
+graph.getNodesByType('command');              // all command nodes
+```
+
+### graph-headless only — embedded graph
+
+Pure state logic with geometry and layout. No DOM. Useful in server-side rendering, testing, or non-browser environments.
 
 ```js
 import { GraphStore, getDescendants, computeLayout } from '@wity/graph-headless';
