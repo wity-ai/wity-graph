@@ -1,7 +1,7 @@
 {
   "name": "@wity/graph-geo",
   "version": "0.1.0",
-  "description": "Geospatial projection layer for wity graph — maps lat/lon coordinates to canvas positions via pluggable projection adapters.",
+  "description": "Spatial projection layer for wity graph — projects any coordinate system to canvas positions via pluggable adapters. Geographic maps, floor plans, orbital views, game maps.",
   "type": "module",
   "main": "./index.js",
   "exports": {

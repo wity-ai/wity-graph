@@ -1,6 +1,6 @@
 # @wity/graph-geo
 
-Geospatial projection layer. Maps geographic coordinates (lat/lon) to canvas pixel positions via pluggable projection adapters. Works with any map library.
+Spatial projection layer. Projects nodes from any coordinate system to canvas pixel positions via pluggable projection adapters. Works with geographic maps, floor plans, orbital views, PCB layouts, game maps — anything that can produce a 2D pixel projection.
 
 ```js
 import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo';
@@ -10,13 +10,13 @@ import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo';
 
 ## Concept
 
-In a standard wity-graph setup, `PanZoomState` owns the viewport transform and the layout engine positions nodes in abstract canvas space. In a geospatial setup, the **map library** owns the viewport — pan, zoom, and projection are all the map's domain.
+In a standard wity-graph setup, `PanZoomState` owns the viewport transform and the layout engine positions nodes in abstract canvas space. In a spatially-backed setup, an **external system** (map library, CAD viewer, game engine) owns the viewport.
 
-`graph-geo` bridges this: it takes a `GraphStore` (same topology, same typed nodes/edges) and projects node positions from `data.lat`/`data.lon` to canvas x/y using whatever map library is in use. The graph's traversal, selection, events, ontology — all unchanged.
+`graph-geo` bridges this: it takes a `GraphStore` (same topology, same typed nodes/edges) and projects node positions from spatial coordinates to canvas x/y using whatever system is in use. The graph's traversal, selection, events, ontology — all unchanged.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Map Library (Mapbox / Leaflet / OpenLayers / Cesium)   │
+│  Spatial system (map / CAD / game engine / viewer)      │
 ├─────────────────────────────────────────────────────────┤
 │  graph-geo                                              │
 │  GeoProjection · GeoGraphState · SpatialIndex           │
@@ -28,13 +28,12 @@ In a standard wity-graph setup, `PanZoomState` owns the viewport transform and t
 
 ---
 
-## Setup
+## Setup — Geographic (Mapbox)
 
 ```js
 import { GraphStore, registerNodeType } from '@wity/graph-headless';
 import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo';
 
-// 1. Register domain-specific node types
 registerNodeType('valve', {
     label: 'Valve',
     layout: { xSpacing: 0, ySpacing: 0, width: 40, height: 40 },
@@ -48,43 +47,65 @@ registerNodeType('valve', {
     },
 });
 
-// 2. Create store and geo layer
 const store = new GraphStore();
 const projection = new GeoProjection({
     project:   (lat, lon) => map.project([lon, lat]),
     unproject: (x, y)     => {
         const ll = map.unproject([x, y]);
-        return { lat: ll.lat, lon: ll.lng };
+        return { a: ll.lat, b: ll.lng };
     },
 });
 const geo   = new GeoGraphState(store, projection);
 const index = new SpatialIndex({ cellSize: 100 });
 
-// 3. Add geo-positioned nodes
 store.addNode({
     uid:  'V_001',
     type: 'valve',
     data: { lat: -19.158, lon: 146.851, pressure: 320, status: 'open' },
 });
 
-// 4. Re-project on every map viewport change
 map.on('move', () => {
     geo.reproject();
     index.build(store.getNodes());
 });
+```
 
-// 5. Hit-test on click
-map.on('click', (e) => {
-    const hits = index.queryPoint(e.point.x, e.point.y, 20);
-    if (hits.length) console.log('Clicked:', hits[0].uid);
+## Setup — Floor plan (metric coordinates)
+
+```js
+const SCALE = 50;  // 50px per meter
+const projection = new GeoProjection({
+    project:   (mX, mY) => ({ x: mX * SCALE, y: mY * SCALE }),
+    unproject: (x, y)   => ({ a: x / SCALE, b: y / SCALE }),
 });
+
+// coordFields tells GeoGraphState which node.data fields to read
+const geo = new GeoGraphState(store, projection, { coordFields: ['mX', 'mY'] });
+
+store.addNode({ uid: 'machine-1', type: 'cnc', data: { mX: 12.5, mY: 8.3 } });
+canvasEl.addEventListener('resize', () => geo.reproject());
+```
+
+## Setup — Game map (tile coordinates)
+
+```js
+const geo = new GeoGraphState(store, projection, { coordFields: ['tileX', 'tileY'] });
+store.addNode({ uid: 'tower-1', type: 'guard-tower', data: { tileX: 42, tileY: 17 } });
 ```
 
 ---
 
 ## GeoProjection
 
-Pluggable coordinate adapter. Wraps any map library's projection behind a uniform interface.
+Pluggable coordinate adapter. Wraps any spatial system's projection behind a uniform two-function interface. The meaning of the two input coordinates depends on the system:
+
+| System | a | b |
+|---|---|---|
+| Geographic | lat | lon |
+| Floor plan | metersX | metersY |
+| Orbital | azimuth | elevation |
+| Game map | tileX | tileY |
+| PCB | mmX | mmY |
 
 ```js
 const projection = new GeoProjection({ project, unproject });
@@ -92,41 +113,15 @@ const projection = new GeoProjection({ project, unproject });
 
 | Parameter | Type | Description |
 |---|---|---|
-| `project` | `(lat, lon) => { x, y }` | Geographic to canvas pixel coordinates |
-| `unproject` | `(x, y) => { lat, lon }` | Canvas pixel to geographic coordinates |
+| `project` | `(a, b) => { x, y }` | Spatial coordinates to canvas pixels |
+| `unproject` | `(x, y) => { a, b }` | Canvas pixels to spatial coordinates |
 
 ### Methods
 
 | Method | Returns | Description |
 |---|---|---|
-| `project(lat, lon)` | `{ x, y }` | Forward projection |
-| `unproject(x, y)` | `{ lat, lon }` | Inverse projection |
-
-### Map library examples
-
-**Mapbox GL JS:**
-
-```js
-new GeoProjection({
-    project:   (lat, lon) => map.project([lon, lat]),
-    unproject: (x, y)     => {
-        const ll = map.unproject([x, y]);
-        return { lat: ll.lat, lon: ll.lng };
-    },
-});
-```
-
-**Leaflet:**
-
-```js
-new GeoProjection({
-    project:   (lat, lon) => map.latLngToContainerPoint([lat, lon]),
-    unproject: (x, y)     => {
-        const ll = map.containerPointToLatLng([x, y]);
-        return { lat: ll.lat, lon: ll.lng };
-    },
-});
-```
+| `project(a, b)` | `{ x, y }` | Forward projection |
+| `unproject(x, y)` | `{ a, b }` | Inverse projection |
 
 ---
 
@@ -135,35 +130,39 @@ new GeoProjection({
 Connects a `GraphStore` to a `GeoProjection`. Extends `EventBus`.
 
 ```js
-const geo = new GeoGraphState(store, projection);
+const geo = new GeoGraphState(store, projection, options?);
 ```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `coordFields` | `[string, string]` | `['lat', 'lon']` | Names of the two coordinate fields on `node.data`. First → arg `a` of `project(a, b)`, second → arg `b`. |
 
 ### Methods
 
 | Method | Returns | Description |
 |---|---|---|
-| `reproject()` | — | Re-derive all node x/y from `data.lat`/`data.lon`. Also re-projects edge waypoints with lat/lon. Emits `'geo:reprojected'`. |
+| `reproject()` | — | Re-derive all node x/y from their spatial coordinate fields. Also re-projects edge waypoints. Emits `'geo:reprojected'`. |
 | `setProjection(projection)` | — | Replace the projection adapter |
-| `project(lat, lon)` | `{ x, y }` | Convenience forward projection |
-| `unproject(x, y)` | `{ lat, lon }` | Convenience inverse projection |
+| `project(a, b)` | `{ x, y }` | Convenience forward projection |
+| `unproject(x, y)` | `{ a, b }` | Convenience inverse projection |
 
 ### Node data convention
 
-Nodes must carry geographic coordinates in their `data` field:
+Nodes must carry spatial coordinates in their `data` field using the field names specified in `coordFields`:
 
 ```js
-store.addNode({
-    uid:  'tower-42',
-    type: 'cell-tower',
-    data: { lat: 51.5074, lon: -0.1278, bandwidth: 100 },
-});
+// Default (geographic): coordFields = ['lat', 'lon']
+store.addNode({ uid: 'V_001', type: 'valve', data: { lat: -19.158, lon: 146.851 } });
+
+// Floor plan: coordFields = ['mX', 'mY']
+store.addNode({ uid: 'pump-1', type: 'pump', data: { mX: 5.2, mY: 12.8 } });
 ```
 
-Nodes without `data.lat` / `data.lon` are skipped during reprojection.
+Nodes without the specified coordinate fields are skipped during reprojection.
 
 ### Edge waypoints
 
-Edges with `data.waypoints` containing lat/lon are also re-projected:
+Edges with `data.waypoints` containing the same coordinate fields are also re-projected:
 
 ```js
 store.addEdge({
@@ -189,7 +188,7 @@ After `reproject()`, each waypoint gains `x` and `y` fields — ready for `compu
 
 ## SpatialIndex
 
-Grid-based spatial index for efficient point and rect queries at scale. Replaces brute-force iteration for graphs with thousands of geo-positioned nodes.
+Grid-based spatial index for efficient point and rect queries at scale. Replaces brute-force iteration for graphs with thousands of spatially-positioned nodes.
 
 ```js
 const index = new SpatialIndex({ cellSize: 100 });
@@ -213,18 +212,3 @@ const index = new SpatialIndex({ cellSize: 100 });
 |---|---|---|
 | `size` | `number` | Number of indexed nodes |
 | `cellCount` | `number` | Number of occupied grid cells |
-
-### Usage with reproject
-
-```js
-map.on('move', () => {
-    geo.reproject();
-    index.build(store.getNodes());
-});
-
-// Click hit-test
-const hits = index.queryPoint(mouseX, mouseY, 20);
-
-// Box select
-const selected = index.queryRect(selX, selY, selX + selW, selY + selH);
-```

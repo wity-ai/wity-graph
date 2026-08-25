@@ -37,7 +37,7 @@
 
 `graph-player` sits alongside this stack — it consumes snapshots and emits events that feed into GraphStore.
 
-`graph-geo` also sits alongside — it projects node lat/lon to canvas x/y via a pluggable map adapter, replacing PanZoomState + layout when the graph is rendered on a geographic map.
+`graph-geo` also sits alongside — it projects nodes from any spatial coordinate system (geographic, floor plan, orbital, game map) to canvas x/y via a pluggable projection adapter, replacing PanZoomState + layout when the graph is rendered on an external spatial system.
 
 ---
 

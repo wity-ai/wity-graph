@@ -729,7 +729,7 @@ NODE_STATUS.CANCELLED  // 'cancelled'
 
 # @wity/graph-geo
 
-Geospatial projection layer. Maps lat/lon to canvas pixel positions via pluggable projection adapters. Works with any map library (Mapbox GL, Leaflet, OpenLayers, CesiumJS).
+Spatial projection layer. Projects nodes from any coordinate system to canvas pixel positions via pluggable adapters. Works with geographic maps, floor plans, orbital views, PCB layouts, game maps — anything with a 2D projection.
 
 ```js
 import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo';
@@ -740,31 +740,35 @@ import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo';
 ## Setup
 
 ```js
-const store = new GraphStore();
+// Geographic (Mapbox)
 const projection = new GeoProjection({
     project:   (lat, lon) => map.project([lon, lat]),
-    unproject: (x, y)     => { const ll = map.unproject([x, y]); return { lat: ll.lat, lon: ll.lng }; },
+    unproject: (x, y)     => { const ll = map.unproject([x, y]); return { a: ll.lat, b: ll.lng }; },
 });
-const geo   = new GeoGraphState(store, projection);
+const geo   = new GeoGraphState(store, projection);   // reads data.lat, data.lon by default
 const index = new SpatialIndex({ cellSize: 100 });
-
 store.addNode({ uid: 'V_001', type: 'valve', data: { lat: -19.158, lon: 146.851 } });
-
 map.on('move', () => { geo.reproject(); index.build(store.getNodes()); });
-map.on('click', (e) => { const hits = index.queryPoint(e.point.x, e.point.y, 20); });
+
+// Floor plan (metric → pixel)
+const geo = new GeoGraphState(store, projection, { coordFields: ['mX', 'mY'] });
+store.addNode({ uid: 'machine-1', type: 'cnc', data: { mX: 12.5, mY: 8.3 } });
+
+// Game map (tile coordinates)
+const geo = new GeoGraphState(store, projection, { coordFields: ['tileX', 'tileY'] });
 ```
 
 ---
 
 ## GeoProjection
 
-Pluggable coordinate adapter wrapping any map library's projection.
+Pluggable coordinate adapter. (a, b) meaning depends on your system: (lat, lon), (metersX, metersY), (tileX, tileY), etc.
 
 ```js
-new GeoProjection({ project: (lat, lon) => { x, y }, unproject: (x, y) => { lat, lon } })
+new GeoProjection({ project: (a, b) => { x, y }, unproject: (x, y) => { a, b } })
 
-project(lat, lon)   → { x, y }
-unproject(x, y)     → { lat, lon }
+project(a, b)    → { x, y }
+unproject(x, y)  → { a, b }
 ```
 
 ---
@@ -774,16 +778,17 @@ unproject(x, y)     → { lat, lon }
 Connects a GraphStore to a GeoProjection. Extends EventBus.
 
 ```js
-new GeoGraphState(store, projection)
+new GeoGraphState(store, projection, { coordFields?: ['lat', 'lon'] })
+// coordFields: which node.data fields to read as the two spatial coordinates
 
-reproject()              // re-derive all node x/y from data.lat/data.lon; also re-projects edge waypoints
+reproject()              // re-derive all node x/y; also re-projects edge waypoints
 setProjection(proj)      // replace projection adapter
-project(lat, lon)        → { x, y }
-unproject(x, y)          → { lat, lon }
+project(a, b)            → { x, y }
+unproject(x, y)          → { a, b }
 ```
 
-Nodes must carry `data.lat` and `data.lon`. Nodes without them are skipped.
-Edge waypoints with lat/lon in `edge.data.waypoints` are also re-projected.
+Nodes must carry the two coordinate fields in `node.data`. Nodes without them are skipped.
+Edge waypoints carrying the same coordinate fields in `edge.data.waypoints` are also re-projected.
 
 Event: `'geo:reprojected' → { count }`
 

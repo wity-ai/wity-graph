@@ -1,37 +1,43 @@
 /**
- * GeoProjection — pluggable coordinate adapter between geographic and canvas space.
+ * GeoProjection — pluggable coordinate adapter between a spatial coordinate
+ * system and canvas pixel space.
  *
- * Wraps any map library's projection (Mapbox, Leaflet, OpenLayers, CesiumJS)
- * behind a uniform interface so graph-geo stays map-library-agnostic.
+ * Wraps any spatial system's projection behind a uniform interface so
+ * graph-geo stays coordinate-system-agnostic. Works with:
+ *   - Geographic maps (Mapbox, Leaflet, OpenLayers, CesiumJS)
+ *   - Orbital/celestial maps (CesiumJS, Three.js globe)
+ *   - Floor plans, factory layouts, PCB schematics
+ *   - Game maps, virtual worlds
+ *   - Any coordinate system that can be projected to 2D canvas pixels
  *
  * The consumer provides two functions:
- *   project(lat, lon)   → { x, y }   geographic → screen/canvas pixels
- *   unproject(x, y)     → { lat, lon }   screen/canvas pixels → geographic
+ *   project(a, b)     → { x, y }     spatial coords → canvas pixels
+ *   unproject(x, y)   → { a, b }     canvas pixels → spatial coords
  *
- * These are called on every viewport change (map pan/zoom) to re-derive
- * node positions. The graph's topology and data stay untouched — only the
- * x/y pixel coordinates change.
+ * The meaning of (a, b) depends on the coordinate system:
+ *   Geographic:  (lat, lon)
+ *   Floor plan:  (metersX, metersY)
+ *   Orbital:     (azimuth, elevation)
+ *   Game map:    (tileX, tileY)
  *
- * @example — Mapbox GL JS
+ * These are called on every viewport change to re-derive node positions.
  *
- *   const map = new mapboxgl.Map({ ... });
+ * @example — Mapbox GL JS (geographic)
+ *
  *   const projection = new GeoProjection({
- *       project:   (lat, lon) => map.project([lon, lat]),   // returns mapboxgl.Point
+ *       project:   (lat, lon) => map.project([lon, lat]),
  *       unproject: (x, y)     => {
  *           const ll = map.unproject([x, y]);
- *           return { lat: ll.lat, lon: ll.lng };
+ *           return { a: ll.lat, b: ll.lng };
  *       },
  *   });
  *
- * @example — Leaflet
+ * @example — Floor plan (metric coordinates → pixel)
  *
- *   const map = L.map('map');
+ *   const SCALE = 50;  // 50px per meter
  *   const projection = new GeoProjection({
- *       project:   (lat, lon) => map.latLngToContainerPoint([lat, lon]),
- *       unproject: (x, y)     => {
- *           const ll = map.containerPointToLatLng([x, y]);
- *           return { lat: ll.lat, lon: ll.lng };
- *       },
+ *       project:   (mX, mY) => ({ x: mX * SCALE, y: mY * SCALE }),
+ *       unproject: (x, y)   => ({ a: x / SCALE, b: y / SCALE }),
  *   });
  */
 
@@ -40,8 +46,8 @@ export class GeoProjection {
     #unprojectFn;
 
     /**
-     * @param {{ project: (lat: number, lon: number) => { x: number, y: number },
-     *           unproject: (x: number, y: number) => { lat: number, lon: number } }} fns
+     * @param {{ project: (a: number, b: number) => { x: number, y: number },
+     *           unproject: (x: number, y: number) => { a: number, b: number } }} fns
      */
     constructor({ project, unproject }) {
         if (typeof project !== 'function' || typeof unproject !== 'function') {
@@ -52,20 +58,20 @@ export class GeoProjection {
     }
 
     /**
-     * Geographic → canvas pixel coordinates.
-     * @param {number} lat
-     * @param {number} lon
+     * Spatial coordinates → canvas pixel coordinates.
+     * @param {number} a  First spatial coordinate (e.g. lat, metersX, azimuth)
+     * @param {number} b  Second spatial coordinate (e.g. lon, metersY, elevation)
      * @returns {{ x: number, y: number }}
      */
-    project(lat, lon) {
-        return this.#projectFn(lat, lon);
+    project(a, b) {
+        return this.#projectFn(a, b);
     }
 
     /**
-     * Canvas pixel → geographic coordinates.
+     * Canvas pixel → spatial coordinates.
      * @param {number} x
      * @param {number} y
-     * @returns {{ lat: number, lon: number }}
+     * @returns {{ a: number, b: number }}
      */
     unproject(x, y) {
         return this.#unprojectFn(x, y);

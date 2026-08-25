@@ -1,18 +1,25 @@
 /**
  * @wity/graph-geo
  *
- * Geospatial projection layer for wity graph.
+ * Spatial projection layer for wity graph.
  *
- * Maps geographic coordinates (lat/lon) to canvas pixel positions via
- * pluggable projection adapters. Works with any map library — Mapbox GL,
- * Leaflet, OpenLayers, CesiumJS — by injecting project/unproject functions.
+ * Projects nodes from any spatial coordinate system to canvas pixel positions
+ * via pluggable projection adapters. Works with any system that can produce
+ * a 2D pixel projection:
+ *
+ *   - Geographic maps (Mapbox GL, Leaflet, OpenLayers, CesiumJS)
+ *   - Floor plans, factory layouts (metric → pixel)
+ *   - PCB schematics, circuit layouts
+ *   - Orbital/celestial views
+ *   - Game maps, virtual worlds
+ *   - Any (a, b) → (x, y) coordinate transform
  *
  * Complements graph-headless (topology + abstract canvas) and graph-player
- * (temporal). Does not replace PanZoomState — the map library owns the
- * viewport transform in geo mode.
+ * (temporal). Does not replace PanZoomState — the external spatial system
+ * owns the viewport transform in geo mode.
  *
  * ┌─────────────────────────────────────────────────────────┐
- * │  Map Library (Mapbox / Leaflet / OpenLayers / Cesium)   │
+ * │  Spatial system (map / CAD / game engine / viewer)      │
  * ├─────────────────────────────────────────────────────────┤
  * │  graph-geo                                              │
  * │  GeoProjection · GeoGraphState · SpatialIndex           │
@@ -26,7 +33,7 @@
  *
  *   const projection = new GeoProjection({
  *       project:   (lat, lon) => map.project([lon, lat]),
- *       unproject: (x, y)     => { const ll = map.unproject([x, y]); return { lat: ll.lat, lon: ll.lng }; },
+ *       unproject: (x, y)     => { const ll = map.unproject([x, y]); return { a: ll.lat, b: ll.lng }; },
  *   });
  *
  *   const geo   = new GeoGraphState(store, projection);
