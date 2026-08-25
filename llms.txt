@@ -1,12 +1,12 @@
 # wity-graph
 
-A composable headless graph library for building knowledge graphs, agentic workflow visualisers, and directed graph UIs. Three packages with a strict layering contract — no DOM in the math layer, no math in the rendering layer.
+A composable headless graph library for building knowledge graphs, agentic workflow visualisers, geospatial network graphs, and directed graph UIs. Four packages with a strict layering contract — no DOM in the math layer, no math in the rendering layer.
 
-Current versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-player (separate repo)
+Current versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-player · graph-geo v0.1.0
 
 ## Architecture
 
-Three composable layers. Each can be used independently.
+Four composable layers. Each can be used independently.
 
 ```
 @wity/graph-headless     — pure state, layout, geometry, ontology. Zero DOM.
@@ -14,12 +14,16 @@ Three composable layers. Each can be used independently.
 @wity/graph-ui-compute   — DOM bindings, SVG element ops, keyed diffing. Zero framework.
         ↓
 presentation layer       — your Muffin / React / Svelte / vanilla component
+
+@wity/graph-player       — temporal replay, seek, streaming. Feeds events into GraphStore.
+@wity/graph-geo          — geospatial projection, spatial index. Projects lat/lon → canvas x/y.
 ```
 
 Import paths:
-- `import { GraphStore, GraphCanvasState, SelectionManager, ... } from '@wity/graph-headless'`
+- `import { GraphAbstract, GraphStore, GraphCanvasState, SelectionManager, ... } from '@wity/graph-headless'`
 - `import { bindPanZoom, bindNodeDrag, keyedJoin, ... } from '@wity/graph-ui-compute'`
 - `import { GraphPlayer, NODE_STATUS } from '@wity/graph-player'`
+- `import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo'`
 
 IMPORTANT: `getNodeTypeConfig` must be imported from `@wity/graph-headless` directly, never from `@wity/graph-ui-compute` (dual-module-instance issue — separate NODE_TYPES registry).
 
@@ -35,13 +39,16 @@ const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(svgEl, 
 ## Documentation pages
 
 ### @wity/graph-headless
-- [graph-headless API](/packages/graph-headless) — GraphStore, SelectionManager, PlaceholderManager, PanZoomState, GraphCanvasState, traversal, geometry, layout, ontology, objects, actors, BatchProcessor
+- [graph-headless API](/packages/graph-headless) — GraphAbstract, GraphStore, SelectionManager, PlaceholderManager, PanZoomState, GraphCanvasState, traversal, geometry, layout, ontology, objects, actors, BatchProcessor
 
 ### @wity/graph-ui-compute
 - [graph-ui-compute API](/packages/graph-ui-compute) — bindPanZoom, bindNodeDrag, bindPortDrag, bindContextMenu, bindCursorCapture, keyedJoin, SVG element ops, computePortDots, computeObjectPositions, createToolbarRegistry
 
 ### @wity/graph-player
-- [graph-player API](/packages/graph-player) — GraphPlayer, NODE_STATUS, playback modes, timeline construction, custom events
+- [graph-player API](/packages/graph-player) — GraphPlayer, NODE_STATUS, playback modes, timeline construction, custom events, seekTo, appendEvents, temporal accessors
+
+### @wity/graph-geo
+- [graph-geo API](/packages/graph-geo) — GeoProjection, GeoGraphState, SpatialIndex — geospatial projection for map-backed graphs
 
 ### Guides
 - [Architecture](/guide/architecture) — layer contract, coordinate systems, event flow

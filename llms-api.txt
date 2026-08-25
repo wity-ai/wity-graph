@@ -2,7 +2,7 @@
 
 Pure API surface. No prose. Use this to verify method names, signatures, events, and import paths.
 
-Versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17
+Versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-geo v0.1.0
 
 ---
 
@@ -10,6 +10,7 @@ Versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17
 
 ```js
 import {
+  GraphAbstract,
   GraphStore, GraphCanvasState, PanZoomState,
   SelectionManager, PlaceholderManager,
   EventBus, BatchProcessor,
@@ -19,6 +20,7 @@ import {
   getPortSvgPos, getPortDots, getActiveInputPorts,
   getDefaultOutputPortId, getDefaultInputPortId,
   horizontalLinkPath, computeNodeLinkPath,
+  polylinePath, smoothPolylinePath, computePolylinePath,
   getPanTargetForNode, getFitToContent,
   // Layout
   computeLayout, computeNodePosition,
@@ -28,7 +30,7 @@ import {
   getEdgesOfNode, getOutgoingEdges, getIncomingEdges,
   findCommonParent, getDepth,
   // Ontology
-  NODE_TYPES, DEFAULT_NODE_TYPE, getNodeTypeConfig, registerNodeType, patchNodeType,
+  NODE_TYPES, DEFAULT_NODE_TYPE, getNodeTypeConfig, getDataSchema, registerNodeType, patchNodeType,
   LINK_TYPES, DEFAULT_LINK_TYPE, getLinkTypeConfig, registerLinkType,
 } from '@wity/graph-headless';
 
@@ -49,6 +51,70 @@ import {
 } from '@wity/graph-ui-compute';
 
 import { GraphPlayer, NODE_STATUS } from '@wity/graph-player';
+
+import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo';
+```
+
+---
+
+## GraphAbstract
+
+Pure combinatorial graph — vertices and typed edges only. No coordinates, no geometry, no embedding.
+Use when only connectivity and typed relationships matter (knowledge graphs, AI session memory, dependency graphs).
+Use GraphStore when nodes have canvas positions and edges are rendered as SVG paths.
+
+```js
+new GraphAbstract()
+```
+
+### Node CRUD
+```
+addNode({ uid, type?, label?, data? })              → node        // upserts; merges data
+updateNode(uid, patch)                              → node | null // merges patch.data
+removeNode(uid)                                     → boolean     // removes node + connected edges
+getNode(uid)                                        → node | null
+hasNode(uid)                                        → boolean
+getNodes()                                          → node[]
+nodeCount()                                         → number
+```
+
+### Edge CRUD
+```
+// uid defaults to `${type}:${srcUid}→${targetUid}` — unique per (type,src,target) triple
+// multiple edge types between the same pair are fully supported
+addEdge({ uid?, srcUid, targetUid, type?, data? })  → edge | null  // upserts; merges data
+removeEdge(uid)                                     → boolean
+getEdge(uid)                                        → edge | null
+hasEdge(uid)                                        → boolean
+getEdges()                                          → edge[]
+edgeCount()                                         → number
+```
+
+### Traversal
+```
+getOutgoing(srcUid, type?)     → edge[]   // type optional — omit for all outgoing
+getIncoming(targetUid, type?)  → edge[]
+getEdgesOf(nodeUid, type?)     → edge[]   // in or out
+reachable(startUid, type?)     → node[]   // BFS, excludes startUid
+```
+
+### Query
+```
+getNodesByType(type)   → node[]
+getEdgesByType(type)   → edge[]
+```
+
+### Serialise / hydrate
+```
+serialise()     → { version: 1, nodes, edges }   // plain object, safe for JSON
+hydrate(snap)   → void                            // clears + restores, no events
+clone()         → GraphAbstract
+```
+
+### GraphAbstract events
+```
+'nodes:changed'   { op: 'add'|'update'|'remove', uid }
+'edges:changed'   { op: 'add'|'update'|'remove', uid }
 ```
 
 ---
@@ -275,9 +341,15 @@ getActiveInputPorts(node, edges, getConfig)             → object[]
 getDefaultOutputPortId(type, getConfig)                → string
 getDefaultInputPortId(type, getConfig)                 → string
 
-// Path
+// Path — bezier
 horizontalLinkPath(source, target)                     → string   // source/target: [x, y]
 computeNodeLinkPath(srcNode, tgtNode, getConfig, srcPortId?, tgtPortId?)  → string
+
+// Path — polyline (waypoint-based)
+polylinePath(points)                                   → string   // [x,y][] → straight segments
+smoothPolylinePath(points, tension?)                   → string   // [x,y][] → Catmull-Rom smooth
+computePolylinePath(edge, srcNode, tgtNode, opts?)     → string   // reads edge.data.waypoints
+// opts: { smooth?: false, tension?: 0.5 }
 
 // Pan / fit
 getPanTargetForNode(node, layout, viewport, { zoom?, xOffset?, yOffset? })  → { x, y }
@@ -316,16 +388,19 @@ LINK_TYPES        // { DEFAULT: 'default', PLACEHOLDER: 'placeholder', SEMANTIC:
 DEFAULT_LINK_TYPE // 'default'
 
 getNodeTypeConfig(type)   → config   // falls back to 'continuant' if unknown
+getDataSchema(type)       → object | null   // returns dataSchema for a type
 getLinkTypeConfig(type)   → config
 
 registerNodeType(name, config)
 // config: { label, layout: { xSpacing, ySpacing, width, height },
 //           ports: { inputs: [], outputs: [] },
-//           style: { nodeClass, containerClass, ... } }
+//           style: { nodeClass, containerClass, ... },
+//           dataSchema?: { propName: { type, unit?, values? }, ... } }
 // style defaults to { nodeClass: '', containerClass: '' } if omitted
+// dataSchema optional — typed properties for node.data, carried opaquely
 
 patchNodeType(name, patch)
-// Deep-merges per structural key: layout, ports, style
+// Deep-merges per structural key: layout, ports, style, dataSchema
 // Call before addNode() — w/h stamped at creation time
 ```
 
@@ -495,10 +570,16 @@ new GraphPlayer(snapshot, {
 play()
 pause()
 reset()
+seekTo(t)                → void     // replay all events up to t (epoch ms), park cursor
+appendEvents(newEvents)  → void     // merge into sorted timeline for live/streaming
 
 isPlaying    → boolean
 eventCount   → number
 progress     → number   // 0–1
+startTime    → number   // epoch ms of first event
+endTime      → number   // epoch ms of last event
+duration     → number   // endTime - startTime
+currentTime  → number   // epoch ms at cursor
 ```
 
 ### GraphPlayer events
@@ -518,4 +599,45 @@ NODE_STATUS.RUNNING    // 'running'
 NODE_STATUS.COMPLETED  // 'completed'
 NODE_STATUS.ERRORED    // 'errored'
 NODE_STATUS.CANCELLED  // 'cancelled'
+```
+
+---
+
+## GeoProjection (@wity/graph-geo)
+
+```js
+new GeoProjection({ project: (lat, lon) => { x, y }, unproject: (x, y) => { lat, lon } })
+
+project(lat, lon)     → { x, y }
+unproject(x, y)       → { lat, lon }
+```
+
+---
+
+## GeoGraphState (@wity/graph-geo)
+
+```js
+new GeoGraphState(store, projection)
+
+reproject()           → void     // re-derive all node x/y from data.lat/data.lon + edge waypoints
+setProjection(proj)   → void
+project(lat, lon)     → { x, y }
+unproject(x, y)       → { lat, lon }
+```
+
+Event: `'geo:reprojected' → { count }`
+
+---
+
+## SpatialIndex (@wity/graph-geo)
+
+```js
+new SpatialIndex({ cellSize?: 100 })
+
+build(nodes)                        → void     // call after reproject()
+queryPoint(x, y, radius?)          → node[]   // nearest-first, default radius 20
+queryRect(x1, y1, x2, y2)         → node[]   // AABB intersection
+
+size       → number
+cellCount  → number
 ```

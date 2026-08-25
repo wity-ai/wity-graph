@@ -1,6 +1,6 @@
 # wity-graph — Full Documentation
 
-Versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-player (separate repo)
+Versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-player · graph-geo v0.1.0
 
 ---
 
@@ -17,9 +17,9 @@ Three composable layers. Each can be used independently.
 presentation layer       — your Muffin / React / Svelte / vanilla component
 ```
 
-### Canonical setup
+### Canonical setup (visual graph)
 ```js
-import { GraphStore, GraphCanvasState, SelectionManager } from '@wity/graph-headless';
+import { GraphAbstract, GraphStore, GraphCanvasState, SelectionManager } from '@wity/graph-headless';
 import { bindPanZoom, keyedJoin } from '@wity/graph-ui-compute';
 
 const store  = new GraphStore({ viewport: { width, height } });
@@ -79,7 +79,14 @@ registerNodeType('media', {
   layout: { xSpacing: 300, ySpacing: 150, width: 240, height: 200 },
   ports:  { inputs: [{ id: 'in', side: 'input', yFraction: 0.5, xOffset: 0 }], outputs: [] },
   // style is optional — defaults to { nodeClass: '', containerClass: '' }
+  dataSchema: {                     // optional — typed properties for node.data
+    format:   { type: 'enum', values: ['image', 'video', 'audio'] },
+    duration: { type: 'number', unit: 'ms' },
+  },
 });
+
+// Query the schema
+getDataSchema('media')  // → { format: ..., duration: ... } or null
 ```
 
 ---
@@ -337,9 +344,15 @@ getActiveInputPorts(node, edges, getConfig)           → object[]
 getDefaultOutputPortId(type, getConfig)              → string
 getDefaultInputPortId(type, getConfig)               → string
 
-// Path
+// Path — bezier (port-to-port)
 horizontalLinkPath(source, target)                   → string   // [x,y] args
 computeNodeLinkPath(srcNode, tgtNode, getConfig, srcPortId?, tgtPortId?)  → string
+
+// Path — polyline (waypoint-based, for infrastructure/network edges)
+polylinePath(points)                                 → string   // [x,y][] → straight segments
+smoothPolylinePath(points, tension?)                 → string   // [x,y][] → Catmull-Rom smooth
+computePolylinePath(edge, srcNode, tgtNode, opts?)   → string   // reads edge.data.waypoints
+// opts: { smooth?: false, tension?: 0.5 }
 
 // Fit / pan
 getPanTargetForNode(node, layout, viewport, opts)    → { x, y }
@@ -359,14 +372,16 @@ LINK_TYPES        // { DEFAULT: 'default', PLACEHOLDER: 'placeholder', SEMANTIC:
 DEFAULT_LINK_TYPE // 'default'
 
 getNodeTypeConfig(type)  → config   // fallback to 'continuant'
+getDataSchema(type)      → object | null  // returns dataSchema for a type, or null
 getLinkTypeConfig(type)  → config
 
 registerNodeType(name, config)
 // style field optional — defaults to { nodeClass: '', containerClass: '' }
+// dataSchema field optional — typed properties for node.data (carried opaquely, no runtime validation)
 // call before addNode() — w/h stamped at creation time
 
 patchNodeType(name, patch)
-// deep-merges per structural key: layout, ports, style
+// deep-merges per structural key: layout, ports, style, dataSchema
 // call before addNode() for affected nodes
 ```
 
@@ -679,7 +694,11 @@ new GraphPlayer(snapshot, {
 ## Methods & properties
 
 `play()` / `pause()` / `reset()`
+`seekTo(t)` — seek to timestamp (epoch ms); replays all events up to t synchronously
+`appendEvents(newEvents)` — merge new events into sorted timeline for live/streaming
+
 `isPlaying → boolean` / `eventCount → number` / `progress → number (0–1)`
+`startTime → number` / `endTime → number` / `duration → number` / `currentTime → number`
 
 ---
 
@@ -704,4 +723,83 @@ NODE_STATUS.RUNNING    // 'running'
 NODE_STATUS.COMPLETED  // 'completed'
 NODE_STATUS.ERRORED    // 'errored'
 NODE_STATUS.CANCELLED  // 'cancelled'
+```
+
+---
+
+# @wity/graph-geo
+
+Geospatial projection layer. Maps lat/lon to canvas pixel positions via pluggable projection adapters. Works with any map library (Mapbox GL, Leaflet, OpenLayers, CesiumJS).
+
+```js
+import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo';
+```
+
+---
+
+## Setup
+
+```js
+const store = new GraphStore();
+const projection = new GeoProjection({
+    project:   (lat, lon) => map.project([lon, lat]),
+    unproject: (x, y)     => { const ll = map.unproject([x, y]); return { lat: ll.lat, lon: ll.lng }; },
+});
+const geo   = new GeoGraphState(store, projection);
+const index = new SpatialIndex({ cellSize: 100 });
+
+store.addNode({ uid: 'V_001', type: 'valve', data: { lat: -19.158, lon: 146.851 } });
+
+map.on('move', () => { geo.reproject(); index.build(store.getNodes()); });
+map.on('click', (e) => { const hits = index.queryPoint(e.point.x, e.point.y, 20); });
+```
+
+---
+
+## GeoProjection
+
+Pluggable coordinate adapter wrapping any map library's projection.
+
+```js
+new GeoProjection({ project: (lat, lon) => { x, y }, unproject: (x, y) => { lat, lon } })
+
+project(lat, lon)   → { x, y }
+unproject(x, y)     → { lat, lon }
+```
+
+---
+
+## GeoGraphState
+
+Connects a GraphStore to a GeoProjection. Extends EventBus.
+
+```js
+new GeoGraphState(store, projection)
+
+reproject()              // re-derive all node x/y from data.lat/data.lon; also re-projects edge waypoints
+setProjection(proj)      // replace projection adapter
+project(lat, lon)        → { x, y }
+unproject(x, y)          → { lat, lon }
+```
+
+Nodes must carry `data.lat` and `data.lon`. Nodes without them are skipped.
+Edge waypoints with lat/lon in `edge.data.waypoints` are also re-projected.
+
+Event: `'geo:reprojected' → { count }`
+
+---
+
+## SpatialIndex
+
+Grid-based spatial index for efficient point and rect queries at scale.
+
+```js
+new SpatialIndex({ cellSize?: 100 })
+
+build(nodes)                          // (re)build from current positions — call after reproject()
+queryPoint(x, y, radius?)            → node[]   // nearest-first, default radius 20px
+queryRect(x1, y1, x2, y2)           → node[]   // AABB intersection
+
+size       → number   // indexed node count
+cellCount  → number   // occupied grid cells
 ```
