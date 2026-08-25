@@ -649,13 +649,19 @@ import { getPortSvgPos, getPortDots, getActiveInputPorts,
 ### Path geometry
 
 ```js
-import { horizontalLinkPath, computeNodeLinkPath } from '@wity/graph-headless';
+import { horizontalLinkPath, computeNodeLinkPath,
+         polylinePath, smoothPolylinePath, computePolylinePath } from '@wity/graph-headless';
 ```
 
 | Function | Returns | Description |
 |---|---|---|
-| `horizontalLinkPath(source, target)` | `string` | SVG `d` attribute for cubic bezier between two `{ x, y }` points |
+| `horizontalLinkPath(source, target)` | `string` | SVG `d` attribute for cubic bezier between two `[x, y]` points |
 | `computeNodeLinkPath(srcNode, tgtNode, getConfig, srcPortId?, tgtPortId?)` | `string` | Full path resolving port positions |
+| `polylinePath(points)` | `string` | Straight-segment SVG path through `[x, y][]` waypoints |
+| `smoothPolylinePath(points, tension?)` | `string` | Catmull-Rom smooth curve through waypoints (passes through every point) |
+| `computePolylinePath(edge, srcNode, tgtNode, options?)` | `string` | SVG path for edges with `edge.data.waypoints`. Options: `{ smooth?: false, tension?: 0.5 }` |
+
+`computePolylinePath` reads waypoints from `edge.data.waypoints` — an array of `[x, y]` or `{ x, y }` points. Falls back to a straight line if no waypoints exist. Use for edges that follow real-world routes (pipe networks, cable runs, transmission lines) rather than abstract bezier curves between ports.
 
 ### Pan target
 
@@ -775,7 +781,7 @@ bindNodeDrag(objectEl, {
 
 ```js
 import {
-  NODE_TYPES, DEFAULT_NODE_TYPE, getNodeTypeConfig, registerNodeType,
+  NODE_TYPES, DEFAULT_NODE_TYPE, getNodeTypeConfig, getDataSchema, registerNodeType,
   LINK_TYPES, DEFAULT_LINK_TYPE, getLinkTypeConfig, registerLinkType,
 } from '@wity/graph-headless';
 ```
@@ -785,6 +791,7 @@ import {
 | `NODE_TYPES` | `{ CONTINUANT: 'continuant', OCCURANT: 'occurant', PLACEHOLDER: 'placeholder' }` |
 | `DEFAULT_NODE_TYPE` | `'continuant'` |
 | `getNodeTypeConfig(type)` | Returns config for `type`, falls back to `'continuant'` if unknown |
+| `getDataSchema(type)` | Returns the `dataSchema` for a node type, or `null` if none is defined |
 | `registerNodeType(name, config)` | Register a new custom node type (full config required) |
 | `patchNodeType(name, patch)` | Partially update a built-in or registered type — deep-merges per structural key |
 | `LINK_TYPES` | `{ DEFAULT: 'default', PLACEHOLDER: 'placeholder', SEMANTIC: 'semantic' }` |
@@ -813,6 +820,32 @@ Port positions (`getPortSvgPos`) always read the live config, so edge paths and 
 `layout.height` and `style.heightCss` must be kept in sync manually — they are in different units (px vs em) and the library has no root font-size knowledge to convert between them.
 
 **vs `registerNodeType`:** use `registerNodeType` for brand-new types (requires a full config); use `patchNodeType` to adjust an existing type.
+
+### `dataSchema` — typed properties for domain ontologies
+
+Node type registrations accept an optional `dataSchema` field — a plain object describing the typed properties that `node.data` should carry for nodes of this type.
+
+```js
+registerNodeType('valve', {
+  label:  'Valve',
+  layout: { xSpacing: 200, ySpacing: 150, width: 40, height: 40 },
+  ports:  { inputs: [{ id: 'in', side: 'input', yFraction: 0.5, xOffset: 0 }],
+            outputs: [{ id: 'out', side: 'output', yFraction: 0.5, xOffset: 0 }] },
+  dataSchema: {
+    pressure:  { type: 'number', unit: 'kPa' },
+    status:    { type: 'enum', values: ['open', 'closed', 'partial'] },
+    diameter:  { type: 'number', unit: 'mm' },
+  },
+});
+
+// Query the schema for any registered type
+const schema = getDataSchema('valve');
+// → { pressure: { type: 'number', unit: 'kPa' }, ... }
+```
+
+`dataSchema` is carried opaquely by the headless layer — no runtime validation is performed. It serves as a contract for domain-specific consumers: UI layers can generate property panels from it, serialisation layers can enforce it, and domain ontologies (SysML2, industry-specific schemas) can declare their property sets through it.
+
+`patchNodeType` preserves `dataSchema` through merges. Passing `dataSchema` in a patch replaces it; omitting it keeps the existing schema.
 
 ---
 

@@ -145,6 +145,8 @@ new GraphPlayer(snapshot, { mode: 'sequential', interval: 600, loop: true, loopD
 | `play()` | Start or resume playback |
 | `pause()` | Pause (cursor position is preserved) |
 | `reset()` | Pause and reset cursor to start; emits `'reset'` |
+| `seekTo(t)` | Seek to timestamp `t` (epoch ms). Replays all events up to `t` synchronously, then parks cursor. |
+| `appendEvents(newEvents)` | Merge new events into the sorted timeline for live/streaming data sources. |
 
 ---
 
@@ -155,6 +157,10 @@ new GraphPlayer(snapshot, { mode: 'sequential', interval: 600, loop: true, loopD
 | `isPlaying` | `boolean` | Whether playback is active |
 | `eventCount` | `number` | Total number of events in the timeline |
 | `progress` | `number` | `0–1`, current position in the timeline |
+| `startTime` | `number` | Epoch ms of the first event (or `0`) |
+| `endTime` | `number` | Epoch ms of the last event (or `0`) |
+| `duration` | `number` | `endTime - startTime` in ms |
+| `currentTime` | `number` | Epoch ms at the current cursor position |
 
 ---
 
@@ -203,6 +209,36 @@ NODE_STATUS.CANCELLED  // 'cancelled'
 ```
 
 These match what `GraphPlayer` emits in `'node:update'` payloads, and what `store.setNodeStatus()` expects.
+
+---
+
+## Seeking
+
+`seekTo(t)` pauses playback, resets the cursor, then synchronously emits all events whose timestamp is `≤ t`. Use it to materialise graph state at an arbitrary point in time — for timeline scrubbers, simulation inspection, or state-at-time queries.
+
+```js
+// Jump to 14:00 (in epoch ms)
+player.seekTo(targetMs);
+
+// The store now reflects the graph state at that moment
+const nodesAtTime = store.getNodes();
+```
+
+After seeking, call `play()` to resume from that point.
+
+---
+
+## Live / streaming
+
+`appendEvents(newEvents)` merges new events into the sorted timeline by timestamp. Events ahead of the current cursor will be reached naturally during playback. Use for live data feeds — simulation engines, real-time telemetry, streaming CoT updates.
+
+```js
+// Simulation engine pushes new state
+player.appendEvents([
+    { type: 'node:update', t: Date.now(), payload: { uid: 'V_001', status: 'closed' } },
+    { type: 'node:appear', t: Date.now(), payload: { node: newSensorNode } },
+]);
+```
 
 ---
 

@@ -37,6 +37,8 @@
 
 `graph-player` sits alongside this stack — it consumes snapshots and emits events that feed into GraphStore.
 
+`graph-geo` also sits alongside — it projects node lat/lon to canvas x/y via a pluggable map adapter, replacing PanZoomState + layout when the graph is rendered on a geographic map.
+
 ---
 
 ## The critical invariant
@@ -246,7 +248,26 @@ import { GraphStore } from '@wity/graph-headless';
 import { GraphPlayer } from '@wity/graph-player';
 ```
 
-### All three via @wity/graph
+### graph-headless + graph-geo
+
+Geospatial graph on a map. The map library owns the viewport; graph-geo projects lat/lon to canvas x/y.
+
+```js
+import { GraphStore, registerNodeType } from '@wity/graph-headless';
+import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo';
+```
+
+### graph-headless + graph-geo + graph-player
+
+Geospatial graph with temporal simulation — e.g. a water network with a 24h pressure timeline.
+
+```js
+import { GraphStore } from '@wity/graph-headless';
+import { GeoGraphState, SpatialIndex } from '@wity/graph-geo';
+import { GraphPlayer } from '@wity/graph-player';
+```
+
+### All packages via @wity/graph
 
 ```js
 import { GraphStore, bindPanZoom, GraphPlayer } from '@wity/graph';

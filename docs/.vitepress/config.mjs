@@ -114,6 +114,7 @@ export default defineConfig({
           { text: '@wity/graph-headless',    link: '/packages/graph-headless' },
           { text: '@wity/graph-ui-compute',  link: '/packages/graph-ui-compute' },
           { text: '@wity/graph-player',      link: '/packages/graph-player' },
+          { text: '@wity/graph-geo',         link: '/packages/graph-geo' },
         ],
       },
     ],
