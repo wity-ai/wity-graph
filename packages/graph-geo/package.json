@@ -1,0 +1,18 @@
+{
+  "name": "@wity/graph-geo",
+  "version": "0.1.0",
+  "description": "Geospatial projection layer for wity graph — maps lat/lon coordinates to canvas positions via pluggable projection adapters.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "keywords": ["graph", "geospatial", "projection", "map", "gis", "spatial-index"],
+  "license": "MIT",
+  "dependencies": {
+    "@wity/graph-headless": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
