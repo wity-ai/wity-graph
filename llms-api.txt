@@ -606,10 +606,11 @@ NODE_STATUS.CANCELLED  // 'cancelled'
 ## GeoProjection (@wity/graph-geo)
 
 ```js
-new GeoProjection({ project: (lat, lon) => { x, y }, unproject: (x, y) => { lat, lon } })
+new GeoProjection({ project: (a, b) => { x, y }, unproject: (x, y) => { a, b } })
+// (a, b) = any coordinate pair: (lat, lon), (metersX, metersY), (tileX, tileY), etc.
 
-project(lat, lon)     → { x, y }
-unproject(x, y)       → { lat, lon }
+project(a, b)      → { x, y }
+unproject(x, y)    → { a, b }
 ```
 
 ---
@@ -617,12 +618,13 @@ unproject(x, y)       → { lat, lon }
 ## GeoGraphState (@wity/graph-geo)
 
 ```js
-new GeoGraphState(store, projection)
+new GeoGraphState(store, projection, { coordFields?: ['lat', 'lon'] })
+// coordFields: which node.data fields to read as the two spatial coordinates
 
-reproject()           → void     // re-derive all node x/y from data.lat/data.lon + edge waypoints
+reproject()           → void     // re-derive all node x/y + edge waypoints
 setProjection(proj)   → void
-project(lat, lon)     → { x, y }
-unproject(x, y)       → { lat, lon }
+project(a, b)         → { x, y }
+unproject(x, y)       → { a, b }
 ```
 
 Event: `'geo:reprojected' → { count }`

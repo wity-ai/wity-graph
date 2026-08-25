@@ -16,7 +16,7 @@ Four composable layers. Each can be used independently.
 presentation layer       — your Muffin / React / Svelte / vanilla component
 
 @wity/graph-player       — temporal replay, seek, streaming. Feeds events into GraphStore.
-@wity/graph-geo          — geospatial projection, spatial index. Projects lat/lon → canvas x/y.
+@wity/graph-geo          — spatial projection, spatial index. Projects any (a,b) coordinates → canvas x/y.
 ```
 
 Import paths:
@@ -48,7 +48,7 @@ const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(svgEl, 
 - [graph-player API](/packages/graph-player) — GraphPlayer, NODE_STATUS, playback modes, timeline construction, custom events, seekTo, appendEvents, temporal accessors
 
 ### @wity/graph-geo
-- [graph-geo API](/packages/graph-geo) — GeoProjection, GeoGraphState, SpatialIndex — geospatial projection for map-backed graphs
+- [graph-geo API](/packages/graph-geo) — GeoProjection, GeoGraphState, SpatialIndex — spatial projection for map-backed, floor-plan, orbital, or any coordinate-system-backed graphs
 
 ### Guides
 - [Architecture](/guide/architecture) — layer contract, coordinate systems, event flow
