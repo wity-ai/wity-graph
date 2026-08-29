@@ -99,7 +99,7 @@ setXmlParser(new DOMParser());
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<wity-graph version="1">
+<wity-knowledge version="1">
   <nodes>
     <node uid="n1" type="continuant" label="Idea">
       <data key="priority" type="number">1</data>
@@ -109,7 +109,7 @@ setXmlParser(new DOMParser());
   <edges>
     <edge uid="default:n1→n2" src="n1" target="n2" type="default" />
   </edges>
-</wity-graph>
+</wity-knowledge>
 ```
 
 Data elements support types: `string` (default), `number`, `boolean`, `null`, `object` (JSON-encoded), `array` (JSON-encoded).
