@@ -28,6 +28,8 @@
 ├──────────┴─────────────────────────────┴─────────────────────┤
 │  Ontology  (node-types, link-types — BFO grounded)           │
 ├──────────────────────────────────────────────────────────────┤
+│  Serialization  (serialize → XML, parse → snapshot)          │
+├──────────────────────────────────────────────────────────────┤
 │  Actors & Session  (layered on top, independent)             │
 │  ActorRegistry · SessionLog · PresenceState                  │
 ├──────────────────────────────────────────────────────────────┤

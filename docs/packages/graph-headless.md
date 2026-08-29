@@ -69,6 +69,57 @@ hydrate(snapshot)       → void                         // clears and restores;
 clone()                 → GraphAbstract               // deep copy via round-trip
 ```
 
+### XML serialization
+
+Serialize and parse graphs as XML — the canonical persistence format. Round-trips cleanly.
+
+```js
+import { serialize, parse, setXmlParser } from '@wity/graph-headless';
+
+// Serialize a graph (accepts GraphAbstract or { nodes, edges } snapshot)
+const xml = serialize(graph);
+
+// Parse XML back to a snapshot
+const snapshot = parse(xml);
+
+// Hydrate into a GraphAbstract
+const restored = new GraphAbstract();
+restored.hydrate(snapshot);
+```
+
+In Node.js, inject an XML parser before calling `parse()`:
+
+```js
+import { DOMParser } from '@xmldom/xmldom';
+import { setXmlParser } from '@wity/graph-headless';
+setXmlParser(new DOMParser());
+```
+
+#### XML format
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<wity-graph version="1">
+  <nodes>
+    <node uid="n1" type="continuant" label="Idea">
+      <data key="priority" type="number">1</data>
+      <data key="status">active</data>
+    </node>
+  </nodes>
+  <edges>
+    <edge uid="default:n1→n2" src="n1" target="n2" type="default" />
+  </edges>
+</wity-graph>
+```
+
+Data elements support types: `string` (default), `number`, `boolean`, `null`, `object` (JSON-encoded), `array` (JSON-encoded).
+
+| Function | Signature | Description |
+|---|---|---|
+| `serialize` | `(source) → string` | GraphAbstract or snapshot → XML string |
+| `parse` | `(xml) → { version, nodes, edges }` | XML string → snapshot (hydrate-ready) |
+| `setXmlParser` | `(parser) → void` | Inject DOMParser for Node.js environments |
+
 ### Events
 
 Extends `EventBus`. Same subscription API as `GraphStore`.
