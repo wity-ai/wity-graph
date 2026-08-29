@@ -23,6 +23,8 @@ import{_ as a,o as i,c as e,ae as n}from"./chunks/framework.BbvTqzFm.js";const c
 <span class="line"><span>├──────────┴─────────────────────────────┴─────────────────────┤</span></span>
 <span class="line"><span>│  Ontology  (node-types, link-types — BFO grounded)           │</span></span>
 <span class="line"><span>├──────────────────────────────────────────────────────────────┤</span></span>
+<span class="line"><span>│  Serialization  (serialize → XML, parse → snapshot)          │</span></span>
+<span class="line"><span>├──────────────────────────────────────────────────────────────┤</span></span>
 <span class="line"><span>│  Actors &amp; Session  (layered on top, independent)             │</span></span>
 <span class="line"><span>│  ActorRegistry · SessionLog · PresenceState                  │</span></span>
 <span class="line"><span>├──────────────────────────────────────────────────────────────┤</span></span>

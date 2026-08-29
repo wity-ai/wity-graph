@@ -32,6 +32,8 @@ import {
   // Ontology
   NODE_TYPES, DEFAULT_NODE_TYPE, getNodeTypeConfig, getDataSchema, registerNodeType, patchNodeType,
   LINK_TYPES, DEFAULT_LINK_TYPE, getLinkTypeConfig, registerLinkType,
+  // Serialization
+  serialize, parse, setXmlParser,
 } from '@wity/graph-headless';
 
 import {
@@ -109,6 +111,13 @@ getEdgesByType(type)   → edge[]
 serialise()     → { version: 1, nodes, edges }   // plain object, safe for JSON
 hydrate(snap)   → void                            // clears + restores, no events
 clone()         → GraphAbstract
+```
+
+### XML serialization
+```
+serialize(source)        → string                  // GraphAbstract or snapshot → XML
+parse(xml)               → { version, nodes, edges }  // XML → snapshot (hydrate-ready)
+setXmlParser(parser)     → void                    // inject DOMParser for Node.js
 ```
 
 ### GraphAbstract events

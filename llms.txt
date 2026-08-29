@@ -20,7 +20,7 @@ presentation layer       — your Muffin / React / Svelte / vanilla component
 ```
 
 Import paths:
-- `import { GraphAbstract, GraphStore, GraphCanvasState, SelectionManager, ... } from '@wity/graph-headless'`
+- `import { GraphAbstract, GraphStore, GraphCanvasState, SelectionManager, serialize, parse, setXmlParser, ... } from '@wity/graph-headless'`
 - `import { bindPanZoom, bindNodeDrag, keyedJoin, ... } from '@wity/graph-ui-compute'`
 - `import { GraphPlayer, NODE_STATUS } from '@wity/graph-player'`
 - `import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo'`
@@ -39,7 +39,7 @@ const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(svgEl, 
 ## Documentation pages
 
 ### @wity/graph-headless
-- [graph-headless API](/packages/graph-headless) — GraphAbstract, GraphStore, SelectionManager, PlaceholderManager, PanZoomState, GraphCanvasState, traversal, geometry, layout, ontology, objects, actors, BatchProcessor
+- [graph-headless API](/packages/graph-headless) — GraphAbstract, GraphStore, SelectionManager, PlaceholderManager, PanZoomState, GraphCanvasState, traversal, geometry, layout, ontology, XML serialization (serialize/parse), objects, actors, BatchProcessor
 
 ### @wity/graph-ui-compute
 - [graph-ui-compute API](/packages/graph-ui-compute) — bindPanZoom, bindNodeDrag, bindPortDrag, bindContextMenu, bindCursorCapture, keyedJoin, SVG element ops, computePortDots, computeObjectPositions, createToolbarRegistry
