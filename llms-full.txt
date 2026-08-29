@@ -403,7 +403,7 @@ import { DOMParser } from '@xmldom/xmldom';
 setXmlParser(new DOMParser());
 ```
 
-XML format: `<wity-graph version="1">` root, `<nodes>/<node>` with uid/type/label attrs + `<data>` children, `<edges>/<edge>` with uid/src/target/type attrs + `<data>` children. Data types: string (default), number, boolean, null, object (JSON), array (JSON).
+XML format: `<wity-knowledge version="1">` root, `<nodes>/<node>` with uid/type/label attrs + `<data>` children, `<edges>/<edge>` with uid/src/target/type attrs + `<data>` children. Data types: string (default), number, boolean, null, object (JSON), array (JSON).
 
 ---
 
