@@ -1,6 +1,6 @@
 # wity-graph — Full Documentation
 
-Versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-player · graph-geo v0.1.0
+Versions: graph-headless v0.2.16 · graph-ui-compute v0.2.17 · graph-player · graph-geo v0.1.0
 
 ---
 
@@ -10,7 +10,7 @@ Versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-player · 
 Three composable layers. Each can be used independently.
 
 ```
-@wity/graph-headless     — pure state, layout, geometry, ontology. Zero DOM.
+@wity/graph-headless     — pure state, layout, algorithms, geometry, ontology. Zero DOM.
         ↓
 @wity/graph-ui-compute   — DOM bindings, SVG element ops, keyed diffing. Zero framework.
         ↓
@@ -93,10 +93,10 @@ getDataSchema('media')  // → { format: ..., duration: ... } or null
 
 # @wity/graph-headless
 
-Pure state, layout, traversal, geometry, and ontology. No DOM, no framework, zero dependencies.
+Pure state, layout, traversal, algorithms, geometry, and ontology. No DOM, no framework, zero dependencies.
 
 ```js
-import { GraphStore, SelectionManager, /* ... */ } from '@wity/graph-headless';
+import { GraphStore, SelectionManager, propagate, reachable, shortestPath, allPaths, /* ... */ } from '@wity/graph-headless';
 ```
 
 ---
@@ -316,6 +316,28 @@ Pure functions. Via store delegates: `store.getChildren(uid)`, etc.
 `getDepth(uid, nodes)` → `number`
 
 All return node objects. For UIDs: `result.map(n => n.uid)`.
+
+---
+
+## Algorithms
+
+Pure functions over a GraphAbstract. Directional BFS, Dijkstra, DFS all-paths.
+
+```js
+import { propagate, reachable, shortestPath, allPaths } from '@wity/graph-headless';
+```
+
+`propagate(graph, fromUid, options?)` → `{ uid, depth, via }[]`
+BFS propagation. Options: `direction` ('downstream'|'upstream'|'both'), `edgeTypes` (string[]), `maxDepth`, `filter` ((node) => boolean).
+
+`reachable(graph, fromUid, options?)` → `string[]`
+All reachable UIDs. Same options as propagate except filter.
+
+`shortestPath(graph, fromUid, toUid, options?)` → `{ path, cost } | null`
+Dijkstra. Options: `direction`, `edgeTypes`, `cost` ((edge) => number, default: () => 1).
+
+`allPaths(graph, fromUid, toUid, options?)` → `{ path, cost }[]`
+All simple paths via depth-limited DFS. Same options as shortestPath plus `maxDepth` (default: 20).
 
 ---
 
