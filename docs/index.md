@@ -36,10 +36,11 @@ A production-grade directed graph library built in three independent, composable
 
 | Package | Purpose | Use independently? |
 |---|---|---|
-| [`@wity/graph-headless`](/packages/graph-headless) | State, layout, traversal, geometry, ontology | Yes |
+| [`@wity/graph-headless`](/packages/graph-headless) | State, layout, traversal, algorithms, geometry, ontology | Yes |
 | [`@wity/graph-ui-compute`](/packages/graph-ui-compute) | DOM geometry, interaction bindings | Yes (requires headless) |
 | [`@wity/graph-player`](/packages/graph-player) | Temporal replay of graph snapshots | Yes (requires headless) |
-| `@wity/graph` | Re-exports all three | Convenience |
+| [`@wity/graph-geo`](/packages/graph-geo) | Spatial projection for any coordinate system | Yes (requires headless) |
+| `@wity/graph` | Re-exports all packages | Convenience |
 
 ## Quick start
 

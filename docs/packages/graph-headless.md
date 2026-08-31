@@ -51,8 +51,10 @@ edgeCount()                                          → number
 getOutgoing(srcUid, type?)     → edge[]   // outgoing edges, optionally filtered by type
 getIncoming(targetUid, type?)  → edge[]   // incoming edges, optionally filtered by type
 getEdgesOf(nodeUid, type?)     → edge[]   // all edges (in or out), optionally filtered
-reachable(startUid, type?)     → node[]   // BFS — all reachable nodes, excludes startUid
+reachable(startUid, type?)     → node[]   // BFS — all reachable nodes (basic, downstream only)
 ```
+
+For richer traversal (direction control, depth limits, edge type filtering, cost functions), use the standalone [Algorithms](#algorithms) functions.
 
 ### Query
 
@@ -634,6 +636,65 @@ const children = store.getChildren('root-id');
 | `getIncomingEdges(uid, edges)` | Edges where node is target |
 | `findCommonParent(uidA, uidB, nodes)` | First shared parent, or `false` |
 | `getDepth(uid, nodes)` | Distance from nearest root (0 = root) |
+
+---
+
+## Algorithms
+
+Pure functions over a `GraphAbstract`. Directional BFS propagation, reachability, Dijkstra shortest path, and DFS all-paths enumeration. All support direction control (`downstream`/`upstream`/`both`), edge type filtering, and depth limits.
+
+```js
+import { propagate, reachable, shortestPath, allPaths } from '@wity/graph-headless';
+```
+
+### `propagate(graph, fromUid, options?)` → `{ uid, depth, via }[]`
+
+BFS propagation from a source node. Returns each reached node with its depth and the node it was reached through.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `direction` | `'downstream' \| 'upstream' \| 'both'` | `'downstream'` | Edge traversal direction |
+| `edgeTypes` | `string[]` | all | Restrict to these edge types |
+| `maxDepth` | `number` | `Infinity` | Stop at this depth |
+| `filter` | `(node) => boolean` | — | Skip nodes that fail the predicate |
+
+```js
+propagate(graph, 'S1', { direction: 'downstream', maxDepth: 2 });
+// → [{ uid: 'V1', depth: 1, via: 'S1' }, { uid: 'P1', depth: 2, via: 'V1' }]
+```
+
+### `reachable(graph, fromUid, options?)` → `string[]`
+
+All node UIDs reachable from a source via BFS. Same options as `propagate` except `filter`.
+
+```js
+reachable(graph, 'S1', { edgeTypes: ['feeds'], maxDepth: 3 });
+// → ['V1', 'P1', 'T1']
+```
+
+### `shortestPath(graph, fromUid, toUid, options?)` → `{ path, cost } | null`
+
+Dijkstra's shortest path with a pluggable cost function.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `direction` | `'downstream' \| 'upstream' \| 'both'` | `'downstream'` | Edge traversal direction |
+| `edgeTypes` | `string[]` | all | Restrict to these edge types |
+| `cost` | `(edge) => number` | `() => 1` | Edge cost function |
+
+```js
+shortestPath(graph, 'S1', 'H1', { cost: e => e.data.length || 1 });
+// → { path: ['S1', 'V1', 'P1', 'H1'], cost: 1650 }
+```
+
+### `allPaths(graph, fromUid, toUid, options?)` → `{ path, cost }[]`
+
+All simple paths via depth-limited DFS. Same options as `shortestPath` plus `maxDepth` (default: 20).
+
+```js
+allPaths(graph, 'S1', 'H1', { maxDepth: 10 });
+// → [{ path: ['S1', 'V1', 'P1', 'H1'], cost: 3 }, ...]
+```
 
 ---
 

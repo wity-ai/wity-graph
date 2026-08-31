@@ -2,14 +2,14 @@
 
 A composable headless graph library for building knowledge graphs, agentic workflow visualisers, geospatial network graphs, and directed graph UIs. Four packages with a strict layering contract — no DOM in the math layer, no math in the rendering layer.
 
-Current versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-player · graph-geo v0.1.0
+Current versions: graph-headless v0.2.16 · graph-ui-compute v0.2.17 · graph-player · graph-geo v0.1.0
 
 ## Architecture
 
 Four composable layers. Each can be used independently.
 
 ```
-@wity/graph-headless     — pure state, layout, geometry, ontology. Zero DOM.
+@wity/graph-headless     — pure state, layout, algorithms, geometry, ontology. Zero DOM.
         ↓
 @wity/graph-ui-compute   — DOM bindings, SVG element ops, keyed diffing. Zero framework.
         ↓
@@ -20,7 +20,7 @@ presentation layer       — your Muffin / React / Svelte / vanilla component
 ```
 
 Import paths:
-- `import { GraphAbstract, GraphStore, GraphCanvasState, SelectionManager, serialize, parse, setXmlParser, ... } from '@wity/graph-headless'`
+- `import { GraphAbstract, GraphStore, GraphCanvasState, SelectionManager, propagate, reachable, shortestPath, allPaths, serialize, parse, setXmlParser, ... } from '@wity/graph-headless'`
 - `import { bindPanZoom, bindNodeDrag, keyedJoin, ... } from '@wity/graph-ui-compute'`
 - `import { GraphPlayer, NODE_STATUS } from '@wity/graph-player'`
 - `import { GeoProjection, GeoGraphState, SpatialIndex } from '@wity/graph-geo'`
@@ -39,7 +39,7 @@ const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(svgEl, 
 ## Documentation pages
 
 ### @wity/graph-headless
-- [graph-headless API](/packages/graph-headless) — GraphAbstract, GraphStore, SelectionManager, PlaceholderManager, PanZoomState, GraphCanvasState, traversal, geometry, layout, ontology, XML serialization (serialize/parse), objects, actors, BatchProcessor
+- [graph-headless API](/packages/graph-headless) — GraphAbstract, GraphStore, SelectionManager, PlaceholderManager, PanZoomState, GraphCanvasState, traversal, algorithms (propagate/reachable/shortestPath/allPaths), geometry, layout, ontology, XML serialization (serialize/parse), objects, actors, BatchProcessor
 
 ### @wity/graph-ui-compute
 - [graph-ui-compute API](/packages/graph-ui-compute) — bindPanZoom, bindNodeDrag, bindPortDrag, bindContextMenu, bindCursorCapture, keyedJoin, SVG element ops, computePortDots, computeObjectPositions, createToolbarRegistry

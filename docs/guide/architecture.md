@@ -23,9 +23,9 @@
 │  GraphAbstract                                               │
 │  pure combinatorial graph — vertices + typed edges only      │
 │  no coordinates, no geometry, no embedding                   │
-├──────────┬───────────────────────────┬───────────────────────┤
-│  Layout  │  Traversal                  │  Geometry           │
-├──────────┴─────────────────────────────┴─────────────────────┤
+├──────────┬──────────────┬──────────────┬──────────────────────┤
+│  Layout  │  Traversal   │  Algorithms  │  Geometry            │
+├──────────┴──────────────┴──────────────┴──────────────────────┤
 │  Ontology  (node-types, link-types — BFO grounded)           │
 ├──────────────────────────────────────────────────────────────┤
 │  Serialization  (serialize → XML, parse → snapshot)          │
@@ -212,7 +212,7 @@ store.batch(() => {
 No geometry, no layout, no positions. For knowledge graphs, dependency graphs, AI session memory — anywhere only connectivity and typed relationships matter.
 
 ```js
-import { GraphAbstract } from '@wity/graph-headless';
+import { GraphAbstract, propagate, reachable, shortestPath, allPaths } from '@wity/graph-headless';
 
 const graph = new GraphAbstract();
 graph.addNode({ uid: 'cmd:ls', type: 'command', label: 'ls' });
@@ -220,8 +220,14 @@ graph.addNode({ uid: 'cmd:grep', type: 'command', label: 'grep' });
 graph.addEdge({ srcUid: 'cmd:ls', targetUid: 'cmd:grep', type: 'chains-with' });
 
 graph.getOutgoing('cmd:ls', 'chains-with');   // [{ uid, srcUid, targetUid, type, data }]
-graph.reachable('cmd:ls', 'chains-with');     // BFS — all reachable nodes
+graph.reachable('cmd:ls', 'chains-with');     // BFS — all reachable nodes (basic)
 graph.getNodesByType('command');              // all command nodes
+
+// Rich graph algorithms — pure functions over any GraphAbstract
+propagate(graph, 'cmd:ls', { direction: 'downstream', maxDepth: 3 });
+reachable(graph, 'cmd:ls', { edgeTypes: ['chains-with'] });
+shortestPath(graph, 'cmd:ls', 'cmd:grep', { cost: e => e.data.weight || 1 });
+allPaths(graph, 'cmd:ls', 'cmd:grep');
 ```
 
 ### graph-headless only — embedded graph

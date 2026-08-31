@@ -12,9 +12,10 @@ wity-graph is built in three independent, composable layers:
 
 | Package | Purpose | Standalone? |
 |---|---|---|
-| [`@wity/graph-headless`](https://www.wity.ai/stack/knowledge-graph/packages/graph-headless) | State, layout, traversal, geometry, ontology | Yes |
+| [`@wity/graph-headless`](https://www.wity.ai/stack/knowledge-graph/packages/graph-headless) | State, layout, traversal, algorithms, geometry, ontology | Yes |
 | [`@wity/graph-ui-compute`](https://www.wity.ai/stack/knowledge-graph/packages/graph-ui-compute) | DOM geometry, pan/zoom, interaction bindings | Requires headless |
 | [`@wity/graph-player`](https://www.wity.ai/stack/knowledge-graph/packages/graph-player) | Temporal replay of graph snapshots | Requires headless |
+| [`@wity/graph-geo`](https://www.wity.ai/stack/knowledge-graph/packages/graph-geo) | Spatial projection for any coordinate system | Requires headless |
 
 The headless layer owns all math — layout, geometry, coordinate transforms, traversal. The rendering layer owns only DOM mutations. No framework coupling at any layer.
 

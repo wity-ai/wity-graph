@@ -2,7 +2,7 @@
 
 Pure API surface. No prose. Use this to verify method names, signatures, events, and import paths.
 
-Versions: graph-headless v0.2.13 · graph-ui-compute v0.2.17 · graph-geo v0.1.0
+Versions: graph-headless v0.2.16 · graph-ui-compute v0.2.17 · graph-geo v0.1.0
 
 ---
 
@@ -29,6 +29,8 @@ import {
   getChildren, getDescendants, getParents, getAncestors, getRoots,
   getEdgesOfNode, getOutgoingEdges, getIncomingEdges,
   findCommonParent, getDepth,
+  // Algorithms
+  propagate, reachable, shortestPath, allPaths,
   // Ontology
   NODE_TYPES, DEFAULT_NODE_TYPE, getNodeTypeConfig, getDataSchema, registerNodeType, patchNodeType,
   LINK_TYPES, DEFAULT_LINK_TYPE, getLinkTypeConfig, registerLinkType,
@@ -384,6 +386,25 @@ findCommonParent(uidA, uidB, nodesMap)      → node | false
 getDepth(uid, nodesMap)                     → number
 // All return node objects. For UIDs: result.map(n => n.uid)
 // Via store: store.getChildren(uid), store.getDescendants(uid), etc.
+```
+
+---
+
+## Algorithms (pure functions over GraphAbstract)
+
+```
+propagate(graph, fromUid, options?)         → { uid, depth, via }[]
+// BFS propagation. options: direction ('downstream'|'upstream'|'both'),
+// edgeTypes (string[]), maxDepth, filter ((node) => boolean)
+
+reachable(graph, fromUid, options?)         → string[]
+// All reachable UIDs. options: direction, edgeTypes, maxDepth
+
+shortestPath(graph, fromUid, toUid, options?)  → { path, cost } | null
+// Dijkstra. options: direction, edgeTypes, cost ((edge) => number)
+
+allPaths(graph, fromUid, toUid, options?)   → { path, cost }[]
+// DFS all simple paths. options: direction, edgeTypes, maxDepth (default 20), cost
 ```
 
 ---
