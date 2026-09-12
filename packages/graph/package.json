@@ -1,7 +1,7 @@
 {
   "name": "@wity/graph",
   "version": "0.1.0",
-  "description": "Wity graph library — headless state + UI geometry compute layers combined.",
+  "description": "Wity graph library — headless state, UI geometry compute, temporal replay, and spatial projection layers combined.",
   "type": "module",
   "main": "./index.js",
   "exports": {
@@ -15,7 +15,8 @@
   "dependencies": {
     "@wity/graph-headless": "*",
     "@wity/graph-ui-compute": "*",
-    "@wity/graph-player": "*"
+    "@wity/graph-player": "*",
+    "@wity/graph-geo": "*"
   },
   "publishConfig": {
     "access": "public"

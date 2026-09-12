@@ -2,7 +2,7 @@
 
 Pure API surface. No prose. Use this to verify method names, signatures, events, and import paths.
 
-Versions: graph-headless v0.2.16 · graph-ui-compute v0.2.17 · graph-geo v0.1.0
+Versions: graph-headless v0.2.17 · graph-ui-compute v0.2.18 · graph-player v0.2.0 · graph-geo v0.1.0
 
 ---
 
@@ -412,9 +412,9 @@ allPaths(graph, fromUid, toUid, options?)   → { path, cost }[]
 ## Ontology
 
 ```js
-NODE_TYPES        // { CONTINUANT: 'continuant', OCCURANT: 'occurant', PLACEHOLDER: 'placeholder' }
+NODE_TYPES        // { continuant: { label, layout, ports, style }, occurant: {...}, placeholder: {...} }
 DEFAULT_NODE_TYPE // 'continuant'
-LINK_TYPES        // { DEFAULT: 'default', PLACEHOLDER: 'placeholder', SEMANTIC: 'semantic' }
+LINK_TYPES        // { default: { label, description, style }, placeholder: {...}, semantic: {...} }
 DEFAULT_LINK_TYPE // 'default'
 
 getNodeTypeConfig(type)   → config   // falls back to 'continuant' if unknown
@@ -450,6 +450,8 @@ clear()
 ---
 
 ## bindPanZoom (@wity/graph-ui-compute)
+
+Wheel, pointer drag, and multi-touch pinch-to-zoom. Two-finger pinch zooms around midpoint; two-finger drag pans.
 
 ```js
 const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(

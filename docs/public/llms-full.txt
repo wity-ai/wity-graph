@@ -1,6 +1,6 @@
 # wity-graph — Full Documentation
 
-Versions: graph-headless v0.2.16 · graph-ui-compute v0.2.17 · graph-player · graph-geo v0.1.0
+Versions: graph-headless v0.2.17 · graph-ui-compute v0.2.18 · graph-player v0.2.0 · graph-geo v0.1.0
 
 ---
 
@@ -388,9 +388,9 @@ getFitToContent(nodes, viewport, { padding?, minZoom?, maxZoom? })  → { pan, z
 ## Ontology
 
 ```js
-NODE_TYPES        // { CONTINUANT: 'continuant', OCCURANT: 'occurant', PLACEHOLDER: 'placeholder' }
+NODE_TYPES        // { continuant: { label, layout, ports, style }, occurant: {...}, placeholder: {...} }
 DEFAULT_NODE_TYPE // 'continuant'
-LINK_TYPES        // { DEFAULT: 'default', PLACEHOLDER: 'placeholder', SEMANTIC: 'semantic' }
+LINK_TYPES        // { default: { label, description, style }, placeholder: {...}, semantic: {...} }
 DEFAULT_LINK_TYPE // 'default'
 
 getNodeTypeConfig(type)  → config   // fallback to 'continuant'
@@ -405,6 +405,9 @@ registerNodeType(name, config)
 patchNodeType(name, patch)
 // deep-merges per structural key: layout, ports, style, dataSchema
 // call before addNode() for affected nodes
+
+registerLinkType(name, config)
+// Register a custom link type at runtime
 ```
 
 ### XML serialization
@@ -464,6 +467,8 @@ import { bindPanZoom, bindNodeDrag, keyedJoin, /* ... */ } from '@wity/graph-ui-
 ---
 
 ## bindPanZoom
+
+Binds wheel, pointer drag, and multi-touch pinch-to-zoom. On touch devices, two-finger pinch gestures zoom around the midpoint while two-finger drag pans.
 
 ```js
 const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(

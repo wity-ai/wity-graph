@@ -900,13 +900,13 @@ import {
 
 | Export | Description |
 |---|---|
-| `NODE_TYPES` | `{ CONTINUANT: 'continuant', OCCURANT: 'occurant', PLACEHOLDER: 'placeholder' }` |
+| `NODE_TYPES` | `{ continuant: { label, layout, ports, style }, occurant: {...}, placeholder: {...} }` |
 | `DEFAULT_NODE_TYPE` | `'continuant'` |
 | `getNodeTypeConfig(type)` | Returns config for `type`, falls back to `'continuant'` if unknown |
 | `getDataSchema(type)` | Returns the `dataSchema` for a node type, or `null` if none is defined |
 | `registerNodeType(name, config)` | Register a new custom node type (full config required) |
 | `patchNodeType(name, patch)` | Partially update a built-in or registered type — deep-merges per structural key |
-| `LINK_TYPES` | `{ DEFAULT: 'default', PLACEHOLDER: 'placeholder', SEMANTIC: 'semantic' }` |
+| `LINK_TYPES` | `{ default: { label, description, style }, placeholder: {...}, semantic: {...} }` |
 | `DEFAULT_LINK_TYPE` | `'default'` |
 | `getLinkTypeConfig(type)` | Returns config for `type` |
 | `registerLinkType(name, config)` | Register a custom link type at runtime |

@@ -2,7 +2,7 @@
 
 A composable headless graph library for building knowledge graphs, agentic workflow visualisers, geospatial network graphs, and directed graph UIs. Four packages with a strict layering contract — no DOM in the math layer, no math in the rendering layer.
 
-Current versions: graph-headless v0.2.16 · graph-ui-compute v0.2.17 · graph-player · graph-geo v0.1.0
+Current versions: graph-headless v0.2.17 · graph-ui-compute v0.2.18 · graph-player v0.2.0 · graph-geo v0.1.0
 
 ## Architecture
 
@@ -42,7 +42,7 @@ const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(svgEl, 
 - [graph-headless API](/packages/graph-headless) — GraphAbstract, GraphStore, SelectionManager, PlaceholderManager, PanZoomState, GraphCanvasState, traversal, algorithms (propagate/reachable/shortestPath/allPaths), geometry, layout, ontology, XML serialization (serialize/parse), objects, actors, BatchProcessor
 
 ### @wity/graph-ui-compute
-- [graph-ui-compute API](/packages/graph-ui-compute) — bindPanZoom, bindNodeDrag, bindPortDrag, bindContextMenu, bindCursorCapture, keyedJoin, SVG element ops, computePortDots, computeObjectPositions, createToolbarRegistry
+- [graph-ui-compute API](/packages/graph-ui-compute) — bindPanZoom (wheel, pointer drag, multi-touch pinch-to-zoom), bindNodeDrag, bindPortDrag, bindContextMenu, bindCursorCapture, keyedJoin, SVG element ops, computePortDots, computeObjectPositions, createToolbarRegistry
 
 ### @wity/graph-player
 - [graph-player API](/packages/graph-player) — GraphPlayer, NODE_STATUS, playback modes, timeline construction, custom events, seekTo, appendEvents, temporal accessors

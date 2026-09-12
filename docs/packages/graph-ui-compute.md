@@ -12,7 +12,7 @@ import { bindPanZoom, bindNodeDrag, keyedJoin, /* ... */ } from '@wity/graph-ui-
 
 ## bindPanZoom
 
-Binds wheel + pointer drag events to a `PanZoomState` instance, and provides programmatic animation.
+Binds wheel, pointer drag, and multi-touch pinch-to-zoom events to a `PanZoomState` instance, and provides programmatic animation. On touch devices, two-finger pinch gestures zoom around the midpoint while two-finger drag pans the canvas.
 
 ```js
 import { bindPanZoom } from '@wity/graph-ui-compute';
@@ -31,6 +31,7 @@ const { applyTransform, animateTo, animateToFit, destroy } = bindPanZoom(
 |---|---|---|---|
 | `mode` | `'svg' \| 'css'` | inferred | `'svg'` writes `transform` attribute on `viewportEl`. `'css'` calls `onApplyTransform`. If omitted, inferred: CSS mode when `onApplyTransform` is provided, SVG mode otherwise |
 | `onApplyTransform` | `(transformStr) => void` | — | CSS mode: called with transform string on every change instead of writing to `viewportEl` |
+| `onTransformChange` | `() => void` | — | Called after every transform apply (wheel, drag, pinch, animation frame) |
 | `dragTarget` | `'background' \| 'any'` | `'background'` | `'background'` — drag only starts on SVG background (default). `'any'` — drag starts on any pointer event (use in CSS mode) |
 
 ### Returns
