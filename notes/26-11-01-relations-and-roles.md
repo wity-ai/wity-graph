@@ -83,29 +83,35 @@ mutates a shared object. Its users are the four interactive canvases above, none
 twice-defined composition link types made one) changes those canvases and is done as its own step, each canvas
 checked in a browser — never folded into the relations work.
 
-## 3. L2.5 rkf — link roles and card roles
+## 3. L2.5 rkf — link roles and card roles (built: rkf-core 3.0.0, edit/link-roles.js, edit/card-roles.js)
 
-**A link's role** — what a connector means.
-- A connector gets `role`: a relation id. The vocabulary rkf-core offers is wity-graph's core relations plus rkf's own
-  argument relations (its namespace, e.g. `rkf:supports`, `rkf:contradicts`, `rkf:example-of`, `rkf:refines`,
-  `rkf:answers` — shown by their labels) — plus `<ns>:<name>` extensions
-  (`script:cuts-to`, `script:flashback`). An un-namespaced id that is neither is refused, so a typo never becomes a
-  role; an unknown namespaced one is kept and drawn plain. One source: `LINK_ROLES` in rkf-core, every command's list
-  and description built from it (as `ROLES` / `THEMES`).
-- **Read, never migrated:** a connector's `data.relationship` that names a known role becomes `role` when a document
-  is read; any other value stays in `data`, untouched. `data` remains for what really is a host's own, never meaning.
-- **Connectors become edges in the document's graph** (doc-graph.js): an edge from card to card, `type` = its role,
-  `data` = its ports, colour, width, uid. Lossless both ways (round-trip test over every saved shape, including no
-  role). Then a thoughtbook's relations can be traversed and analysed like any graph's.
+**A link's role** — what a connector means: `connector.role`.
+- The vocabulary is wity-graph's (`linkRoles()`): its core relations plus `RKF_RELATIONS` — `rkf:supports` /
+  `rkf:supported-by`, `rkf:contradicts` (its own inverse), `rkf:example-of`, `rkf:refines`, `rkf:answers` — built by
+  graph-headless's `relations`, which rkf-core receives through `setGraphProvider` like the rest of the graph library
+  (never imported: rkf-core's contract). With an older graph-headless injected, links work exactly as before and
+  giving a role says it needs ≥ 0.4.0.
+- `addConnector({ role })`, `setConnectorRole`, `updateConnector({ role })` check it (`linkRoleProblems`): a typo is
+  refused and nothing changes; a namespaced role of your own is kept and drawn plain.
+- **Saved before roles:** `normalizeDoc` reads a `data.relationship` that names a relation (`causes`; rkf's by name,
+  `supports` → `rkf:supports`) as the role and takes it out of `data`, so the meaning is said once. Any other value
+  (`child`, `has`) stays in `data`; a role already given wins and nothing is dropped.
+- **Where links are saved does not change.** Connectors stay in their section (`section.connectors`, saved in the
+  section node's data) with everything they carry (label, endCap, colour…). vritti-knowledge's extractor reads them
+  there, and an older reader keeps a connector's `role` as one of its keys. A graph of a thoughtbook's relations,
+  when one is needed, is derived from them (as rkf derives `depends-on` / `reads` / `writes`), never stored twice.
 
-**A card's role** — what a card is in the document.
-- `card.role`: an id from `CARD_ROLES` (core, small: `claim`, `evidence`, `question`, `definition`, `example`,
-  `summary`) or `<ns>:<name>`. Each role says its BFO kind (continuant or occurant) — the card node's kind follows it.
-- **A role's details are typed fields the role declares** (`card.fields`, checked against the role), never a free
-  metadata bag — the bag is the mistake §1 records on connectors.
-- One place each: a **cell's** role is what a part of a card means; a **card's** role is what the whole card is. A
-  role never sits on both.
-- Old readers ignore `role` and draw plain (as with cell roles); unknown roles are never deleted on load.
+**A card's role** — what a card is: `card.role`, `CARD_ROLES` (claim, evidence, question, definition, example,
+summary — each with its BFO kind), or `<ns>:<name>`; `setCardRole`, `cardRoleProblems`; never dropped on load.
+- One place each: a cell's role is what a part of a card means; a card's role, what the whole card is.
+- **Fields of a role** (a `script:scene`'s place, time, cast) come with the first role that has them (§5) — typed,
+  declared by the role, never a free bag. No core role has fields, so none is built before it is needed.
+
+**Who reads connectors' meaning today, all moving to `role` in step 3–4, in one release with rkf-core 3:**
+wity-app's connector inspector (the `data` bag editor), wity-authoring (`link.add` description, `card.read` /
+`doc.outline`, the assistant context's `relationship=` attribute), wity-mcp's boards.ts (the raw XML guide's
+`data.relationship` example), the viewer and the app's connector layer (draw `label`). No consumer takes rkf-core 3
+before these are updated with it — otherwise a relationship read as a role would vanish from what they show.
 
 ## 4. What stays as it is
 
@@ -143,8 +149,8 @@ this section". Episodes are joined through their script; no series field.
 
 1. **L1 (done):** the inventory (§2); `relations` in graph-headless — additive, no existing behaviour changed.
    1b (separate, later): GraphStore's link types (§2), each canvas checked in a browser.
-2. **L2.5 rkf-core:** `LINK_ROLES`, `CARD_ROLES`, role fields; connector `role` (read-upgrade from
-   `data.relationship`); connectors as edges in doc-graph (round-trip over saved boards). A major version (as 2.0.0).
+2. **L2.5 rkf-core (done, 3.0.0, not yet released):** link roles, card roles, the read of `data.relationship`;
+   graph-headless 0.4.0 released. Released together with steps 3–4's consumers, never before.
 3. **L3 wity-authoring:** commands `link.role.set`, `card.role.set` (lists built from rkf-core), `card.read` /
    `doc.outline` show roles; the guide. MCP and every assistant get them through authoring.
 4. **wity-app + viewer:** themes draw link and card roles; pickers.
