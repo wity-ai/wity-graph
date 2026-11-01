@@ -53,29 +53,42 @@ a primitive any of them needs belongs in wity-graph, and each L2 extends it for 
   Scene / Script / Storyboard tabs. It requires the composition's `cotRef` ("How this was made cannot be shown"
   without one) — a separate link from the `script` guidance.
 
-## 2. L1 wity-graph — a relation, its state and its look, apart
+## 2. L1 wity-graph — relations, a declared vocabulary (built: graph-headless `ontology/relations.js`)
 
-- **An edge's `type` is its relation.** No new field: `GraphAbstract` already treats it so (uid per type triple).
-- **A relation id** is a core relation or `<namespace>:<name>`. wity-graph exports the grammar (`isRelationId`) and a
-  small **core set** grounded in OBO's Relation Ontology, general to any graph:
-  `part-of` / `has-part`, `precedes`, `causes`, `depends-on`, `derives-from`, `participates-in`.
-  Plus `related` (the plain link — today's `default`), so every existing edge has a relation without changing.
-- **Each L2 declares its namespace's relations** (id, label, inverse, which node kinds it joins) — a declaration it
-  passes in, not a mutation of a shared object. `registerLinkType` is replaced; nothing is registered globally.
-- **Edit state is not a relation.** `placeholder` (edge and node) becomes a state of the store — a link or node being
-  drawn — beside `type`, so a link drawn as `causes` is still `causes` while being drawn.
-- **Look is not ontology.** `style` leaves `LINK_TYPES`; whoever draws resolves it from the relation (a theme for
-  wity-app and the viewer, the host's own for others). `GraphStore` keys an edge by its relation triple, as
-  `GraphAbstract` does, so the two stores agree.
-- Un-namespaced ids already used by L2s (`contains`, `depends-on`, `reads`, `writes`, workbook's): each becomes a core
-  relation where it is one (`depends-on`; `contains` = `has-part` — an alias read, never rewritten in saved data) or a
-  declared relation of its package. **Step 1 lists every edge type in use before the core set is frozen** — no guess.
+**Inventory (step 1, 2026-11-01)** — every edge type in use, and who uses the link-type API:
+- Edge types are domain names, not relations, and many are user data: wity-system stores each **user-defined
+  connection type** (a road, a pipe) as `edge.type` (system-graph.js); its formalisms use `contains`, `then`; rkf
+  `contains`, `depends-on`, `reads`, `writes`; workbook `depends-on`; wity-game `at`, `seat`; tests `arc`,
+  `performs`, `loop`. Interactive canvases: agent-builder `observe`, `yield`, `compose-observe`, `compose-flow`;
+  wity-ideation and wity-thought-player `composition-image|video|audio` (the same three, defined twice).
+- `registerLinkType` callers: wity-ideation, wity-thought-player, wity-agent-builder. `GraphStore` users:
+  wity-app knowledge-graph-v2 and intent-journeys, wity-thought-player, wity-agent-builder. **The thoughtbook canvas
+  does not use GraphStore** — its card links are rkf connectors (§1).
+
+**So an edge's type cannot become a governed relation in the data model** — that would refuse a system map's own
+types and every domain name above. Instead (as `checkJoins` already works — rules passed in, nothing global):
+- `GraphAbstract` is unchanged: any string is an edge type.
+- `relations({ extensions, joins })` builds a frozen **vocabulary** a domain checks *its own authored links* with:
+  the core relations (`related`, `part-of`/`has-part`, `precedes`/`preceded-by`, `causes`, `depends-on`,
+  `derives-from`, `participates-in`, `located-in` — each with its RO/BFO id) and the domain's own,
+  `<namespace>:<name>`, each declared once with its label, inverse, and the kinds of node it may join. `problems(id)`
+  refuses a typo; `unknownExtensions: 'keep'` lets an older reader keep a newer writer's namespaced relation.
+  `joinRules()` is what `checkJoins` takes — one definition of joins, not two.
+- Exported: `CORE_RELATIONS`, `relations`, `isRelationId`, `namespaceOf`. Tests: test/relations.test.js.
+
+**GraphStore's link types — a separate cleanup, not on the thoughtbook's path.** `LINK_TYPES` mixes meaning
+(`semantic`), edit state (`placeholder`) and look (`style`), keys an edge by its pair only, and `registerLinkType`
+mutates a shared object. Its users are the four interactive canvases above, none of them the thoughtbook. Fixing it
+(state beside the type, look resolved by the host, a store given its link looks instead of a global registry, the
+twice-defined composition link types made one) changes those canvases and is done as its own step, each canvas
+checked in a browser — never folded into the relations work.
 
 ## 3. L2.5 rkf — link roles and card roles
 
 **A link's role** — what a connector means.
 - A connector gets `role`: a relation id. The vocabulary rkf-core offers is wity-graph's core relations plus rkf's own
-  argument relations — `supports`, `contradicts`, `example-of`, `refines`, `answers` — plus `<ns>:<name>` extensions
+  argument relations (its namespace, e.g. `rkf:supports`, `rkf:contradicts`, `rkf:example-of`, `rkf:refines`,
+  `rkf:answers` — shown by their labels) — plus `<ns>:<name>` extensions
   (`script:cuts-to`, `script:flashback`). An un-namespaced id that is neither is refused, so a typo never becomes a
   role; an unknown namespaced one is kept and drawn plain. One source: `LINK_ROLES` in rkf-core, every command's list
   and description built from it (as `ROLES` / `THEMES`).
@@ -128,9 +141,8 @@ this section". Episodes are joined through their script; no series field.
 
 ## 6. Order of work — each step green before the next, servers before apps
 
-1. **L1:** list every edge type in use (graph-headless users in hais-pkgs and wity-app); relation grammar + core set;
-   split state and look out of `LINK_TYPES`; `GraphStore` keyed by relation; replace `registerLinkType`. Tests:
-   every existing edge reads with an unchanged relation; drag-to-link works as before.
+1. **L1 (done):** the inventory (§2); `relations` in graph-headless — additive, no existing behaviour changed.
+   1b (separate, later): GraphStore's link types (§2), each canvas checked in a browser.
 2. **L2.5 rkf-core:** `LINK_ROLES`, `CARD_ROLES`, role fields; connector `role` (read-upgrade from
    `data.relationship`); connectors as edges in doc-graph (round-trip over saved boards). A major version (as 2.0.0).
 3. **L3 wity-authoring:** commands `link.role.set`, `card.role.set` (lists built from rkf-core), `card.read` /
@@ -141,6 +153,5 @@ this section". Episodes are joined through their script; no series field.
 
 ## 7. Open, to decide before building
 
-- The core relation set's final list (after step 1's inventory).
 - A dialogue line: cell role or text style with a speaker (§5).
 - Whether a card role may also be inferred (e.g. a card holding only a character embed) or is only ever set.
