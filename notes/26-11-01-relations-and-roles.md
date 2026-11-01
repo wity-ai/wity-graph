@@ -134,7 +134,9 @@ before these are updated with it — otherwise a relationship read as a role wou
 
 **A series** is one script thoughtbook (the bible: premise, characters, world; a section per episode). Each episode is
 its own composition. Guidance gains an optional **section**: `{ role: 'script', board, section }` — "this episode is
-this section". Episodes are joined through their script; no series field.
+this section". The script joins the writing. What is published is joined by the compositions' own links
+(wity-scene-authoring relations.js, 2 Nov 2026): an episode is `part-of` its series, itself an ordinary design composition
+labelled `series`, with key art for its scene (as a storyboard is one labelled `storyboard`).
 
 **Script → scene, one direction, linked back** (wity-scene-authoring):
 - A dialogue note gains `source: { board, card, block }` — the line of the script it says.
