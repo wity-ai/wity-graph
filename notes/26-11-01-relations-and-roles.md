@@ -86,11 +86,13 @@ checked in a browser — never folded into the relations work.
 ## 3. L2.5 rkf — link roles and card roles (built: rkf-core 3.0.0, edit/link-roles.js, edit/card-roles.js)
 
 **A link's role** — what a connector means: `connector.role`.
-- The vocabulary is wity-graph's (`linkRoles()`): its core relations plus `RKF_RELATIONS` — `rkf:supports` /
-  `rkf:supported-by`, `rkf:contradicts` (its own inverse), `rkf:example-of`, `rkf:refines`, `rkf:answers` — built by
-  graph-headless's `relations`, which rkf-core receives through `setGraphProvider` like the rest of the graph library
-  (never imported: rkf-core's contract). With an older graph-headless injected, links work exactly as before and
-  giving a role says it needs ≥ 0.4.0.
+- The vocabulary is wity-graph's: `LINK_ROLES` = its core relations plus `RKF_RELATIONS` — `rkf:supports` /
+  `rkf:supported-by`, `rkf:contradicts` (its own inverse), `rkf:example-of`, `rkf:refines`, `rkf:answers` — built at
+  load by `relations` from `@wity/graph-headless/relations` (≥ 0.4.1): a stateless leaf rkf-core imports directly,
+  so the vocabulary is a constant every command's description is built from, and an old board reads the same
+  everywhere. The graph library itself (GraphAbstract, the codec) stays injected with `setGraphProvider`.
+  (First built through the injection; that left the vocabulary absent at load and an old board's reading dependent on
+  what was injected — replaced before release.)
 - `addConnector({ role })`, `setConnectorRole`, `updateConnector({ role })` check it (`linkRoleProblems`): a typo is
   refused and nothing changes; a namespaced role of your own is kept and drawn plain.
 - **Saved before roles:** `normalizeDoc` reads a `data.relationship` that names a relation (`causes`; rkf's by name,
@@ -150,7 +152,7 @@ this section". Episodes are joined through their script; no series field.
 1. **L1 (done):** the inventory (§2); `relations` in graph-headless — additive, no existing behaviour changed.
    1b (separate, later): GraphStore's link types (§2), each canvas checked in a browser.
 2. **L2.5 rkf-core (done, 3.0.0, not yet released):** link roles, card roles, the read of `data.relationship`;
-   graph-headless 0.4.0 released. Released together with steps 3–4's consumers, never before.
+   graph-headless 0.4.1 released (relations as its own entry). Released together with steps 3–4's consumers, never before.
 3. **L3 wity-authoring:** commands `link.role.set`, `card.role.set` (lists built from rkf-core), `card.read` /
    `doc.outline` show roles; the guide. MCP and every assistant get them through authoring.
 4. **wity-app + viewer:** themes draw link and card roles; pickers.
