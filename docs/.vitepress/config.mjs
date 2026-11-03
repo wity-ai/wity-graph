@@ -28,7 +28,7 @@ export default defineConfig({
     ['meta', { property: 'og:url',         content: 'https://www.wity.ai/stack/knowledge-graph/' }],
     ['meta', { property: 'og:title',       content: 'wity-graph — Open Source Knowledge Graph Library by Wity AI' }],
     ['meta', { property: 'og:description', content: 'The headless JavaScript graph library powering knowledge graphs and agentic session visualisation in Wity AI. Three composable layers — pure state, DOM bindings, temporal replay. Zero dependencies.' }],
-    ['meta', { property: 'og:image',       content: 'https://uploads.wity.ai/user-uploads/accounts_wity_ai/ai_image_editor_uploads/2026_04_20T16_47_32_984Z-wity-ai-og-images.png' }],
+    ['meta', { property: 'og:image',       content: 'https://uploads.wity.ai/user-uploads/accounts_wity_ai/landing_pages_recovery/2026_10_29T11_04_10_957Z-2026_04_20T16_47_32_984Z-wity-ai-og-images.png' }],
 
     // Twitter
     ['meta', { name: 'twitter:card',        content: 'summary_large_image' }],
@@ -36,7 +36,7 @@ export default defineConfig({
     ['meta', { name: 'twitter:url',         content: 'https://www.wity.ai/stack/knowledge-graph/' }],
     ['meta', { name: 'twitter:title',       content: 'wity-graph — Open Source Knowledge Graph Library by Wity AI' }],
     ['meta', { name: 'twitter:description', content: 'The headless JavaScript graph library powering knowledge graphs and agentic session visualisation in Wity AI. Three composable layers — pure state, DOM bindings, temporal replay. Zero dependencies.' }],
-    ['meta', { name: 'twitter:image',       content: 'https://uploads.wity.ai/user-uploads/accounts_wity_ai/ai_image_editor_uploads/2026_04_20T16_47_32_984Z-wity-ai-og-images.png' }],
+    ['meta', { name: 'twitter:image',       content: 'https://uploads.wity.ai/user-uploads/accounts_wity_ai/landing_pages_recovery/2026_10_29T11_04_10_957Z-2026_04_20T16_47_32_984Z-wity-ai-og-images.png' }],
 
     // Additional meta
     ['meta', { name: 'author',   content: 'Wity AI' }],
