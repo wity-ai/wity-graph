@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "workspaces": [
+    "packages/graph-geo",
     "packages/graph-headless",
     "packages/graph-ui-compute",
     "packages/graph-player",
